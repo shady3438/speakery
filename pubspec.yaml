@@ -1,0 +1,51 @@
+name: speakery
+description: Speakery English learning and social app.
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  firebase_core: ^2.30.0
+  firebase_auth: ^4.19.0
+  cloud_firestore: ^4.17.0
+  firebase_storage: ^11.7.7
+
+  image_picker: ^1.1.2
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.3.1
+  sizer: ^2.0.15
+  flutter_svg: ^2.0.10+1
+  http: ^1.1.0
+  shared_preferences: ^2.5.5
+
+  record: 6.0.0
+  audioplayers: 5.2.1
+  path_provider: ^2.1.5
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.1
+  flutter_timezone: ^5.1.0
+
+dependency_overrides:
+  record_web:
+    path: tool/patched_packages/record_web
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.2
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/

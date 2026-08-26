@@ -1,0 +1,7 @@
+{
+  "AI_FEEDBACK_ENDPOINT": "https://speakery-gokay.web.app/ai/general",
+  "AI_WRITING_FEEDBACK_ENDPOINT": "https://speakery-gokay.web.app/ai/writing",
+  "AI_SPEAKING_FEEDBACK_ENDPOINT": "https://speakery-gokay.web.app/ai/speaking",
+  "AI_LISTENING_FEEDBACK_ENDPOINT": "https://speakery-gokay.web.app/ai/listening",
+  "AI_CHAT_FEEDBACK_ENDPOINT": "https://speakery-gokay.web.app/ai/chat"
+}

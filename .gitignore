@@ -1,0 +1,98 @@
+# Local secrets and runtime config
+.env
+.env.*
+!.env.example
+env.json
+!env.example.json
+config/release_defines.json
+android/key.properties
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+lib/firebase_options.dart
+admin/firebase-config.js
+functions/.runtimeconfig.json
+functions/.secret.local
+
+# Dependency folders
+node_modules/
+**/node_modules/
+venv/
+.venv/
+env/
+
+# Flutter/Dart/Pub
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.dart-tool/
+.dart_config/
+.dartServer/
+.dart_tooling/
+.flutter_tooling/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+**/build/
+web/flutter_plugins.js
+
+# Android/Gradle generated files
+android/.gradle/
+android/.kotlin/
+android/app/.cxx/
+android/app/debug/
+android/app/profile/
+android/app/release/
+
+# iOS/CocoaPods generated files
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Firebase and local emulator output
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+
+# Logs, reports, and coverage
+*.log
+coverage/
+
+# Python/cache/temp
+__pycache__/
+*__pycache__*/
+*.pyc
+.ipynb_checkpoints/
+tmp/
+temp/
+.tmp/
+.appdata/
+.tools/
+
+# IDE and OS files
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+.atom/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# Build metadata and large archives
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
+
+# Symbolication and obfuscation
+app.*.symbols
+app.*.map.json

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Speakery Admin</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">S</span>
+          <div>
+            <strong>Speakery</strong>
+            <small>Admin Console</small>
+          </div>
+        </div>
+        <nav class="nav" aria-label="Admin sections">
+          <button class="nav-item is-active" data-view="overview">Overview</button>
+          <button class="nav-item" data-view="users">Users</button>
+          <button class="nav-item" data-view="feedback">AI Feedback</button>
+          <button class="nav-item" data-view="content">Content</button>
+          <button class="nav-item" data-view="flags">Feature Flags</button>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Production Readiness</p>
+            <h1 id="viewTitle">Overview</h1>
+          </div>
+          <div class="top-actions">
+            <span id="authStatus" class="auth-status">Mock mode</span>
+            <button id="loginButton" class="ghost">Sign in</button>
+            <input id="searchInput" type="search" placeholder="Search users, lessons, reports" />
+            <button id="exportButton" class="button">Export CSV</button>
+          </div>
+        </header>
+
+        <section id="overview" class="view is-active">
+          <div class="metric-grid">
+            <article class="metric"><span>Daily active users</span><strong>1,284</strong><small>+18.2%</small></article>
+            <article class="metric"><span>Lessons completed</span><strong>8,912</strong><small>+11.7%</small></article>
+            <article class="metric"><span>AI requests</span><strong>34,506</strong><small>Token watch on</small></article>
+            <article class="metric"><span>Open reports</span><strong>17</strong><small>4 urgent</small></article>
+          </div>
+          <div class="split">
+            <section class="panel">
+              <div class="panel-head"><h2>AI Cost By Feature</h2><button class="ghost">Refresh</button></div>
+              <div id="costBars" class="bars"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><h2>Release Gates</h2><button class="ghost">Review</button></div>
+              <ul class="checklist">
+                <li class="ok">Flutter tests passing</li>
+                <li class="ok">Android debug APK builds</li>
+                <li class="warn">Android cmdline-tools missing locally</li>
+                <li class="warn">Final bundle id and Firebase apps required</li>
+                <li class="warn">Apple signing team required</li>
+              </ul>
+            </section>
+          </div>
+        </section>
+
+        <section id="users" class="view">
+          <div class="panel">
+            <div class="panel-head"><h2>Users</h2><button class="ghost">Invite Admin</button></div>
+            <div class="table-wrap"><table id="usersTable"></table></div>
+          </div>
+        </section>
+
+        <section id="feedback" class="view">
+          <div class="panel">
+            <div class="panel-head"><h2>AI Feedback Queue</h2><button class="ghost">Mark Reviewed</button></div>
+            <div class="table-wrap"><table id="feedbackTable"></table></div>
+          </div>
+        </section>
+
+        <section id="content" class="view">
+          <div class="panel">
+            <div class="panel-head"><h2>Content Controls</h2><button class="ghost">Create Lesson</button></div>
+            <div class="table-wrap"><table id="contentTable"></table></div>
+          </div>
+        </section>
+
+        <section id="flags" class="view">
+          <div class="panel">
+            <div class="panel-head"><h2>Feature Flags</h2><button class="ghost" id="saveFlags">Save</button></div>
+            <div id="flagsList" class="flags"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="./firebase-config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,81 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "speakery-gokay",
+          "appId": "1:626438110959:android:a26056c872921f0e1a251a",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "speakery-gokay",
+          "configurations": {
+            "android": "1:626438110959:android:a26056c872921f0e1a251a",
+            "ios": "1:626438110959:ios:bc3443943b98d3211a251a",
+            "macos": "1:626438110959:ios:9742ed72b4d22cea1a251a",
+            "web": "1:626438110959:web:64d2301e6ffa7e371a251a",
+            "windows": "1:626438110959:web:ee3285f434103fcc1a251a"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log"]
+    }
+  ],
+  "hosting": {
+    "public": "admin",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Frame-Options",
+            "value": "DENY"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/ai/general",
+        "function": "aiFeedback"
+      },
+      {
+        "source": "/ai/writing",
+        "function": "aiWriting"
+      },
+      {
+        "source": "/ai/speaking",
+        "function": "aiSpeaking"
+      },
+      {
+        "source": "/ai/listening",
+        "function": "aiListening"
+      },
+      {
+        "source": "/ai/chat",
+        "function": "aiChat"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

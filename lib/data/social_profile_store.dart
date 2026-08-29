@@ -155,12 +155,6 @@ class SocialProfileStore extends ChangeNotifier {
       await _firestore.collection('users').doc(user.uid).set({
         'friends': FieldValue.arrayUnion([request.username]),
       }, SetOptions(merge: true));
-
-      if (request.userId != null) {
-        await _firestore.collection('users').doc(request.userId).set({
-          'friends': FieldValue.arrayUnion([username]),
-        }, SetOptions(merge: true));
-      }
     }
 
     await _saveLocal();
@@ -303,6 +297,14 @@ class SocialProfileStore extends ChangeNotifier {
       'bio': bio,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    await _firestore.collection('publicProfiles').doc(user.uid).set({
+      'name': displayName,
+      'username': username,
+      'usernameLower': username,
+      'bio': bio,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> _loadRemoteRequests(String uid) async {
@@ -315,32 +317,47 @@ class SocialProfileStore extends ChangeNotifier {
         .where('fromUid', isEqualTo: uid)
         .get();
 
-    incomingRequests
-      ..clear()
-      ..addAll(incomingSnapshot.docs
-          .where((doc) => doc.data()['status'] == 'pending')
-          .map((doc) => FriendRequest.fromRemote(
-                id: doc.id,
-                data: doc.data(),
-                direction: FriendRequestDirection.incoming,
-              )));
+    incomingRequests.clear();
+    outgoingRequests.clear();
 
-    outgoingRequests
-      ..clear()
-      ..addAll(outgoingSnapshot.docs
-          .where((doc) => doc.data()['status'] == 'pending')
-          .map((doc) => FriendRequest.fromRemote(
-                id: doc.id,
-                data: doc.data(),
-                direction: FriendRequestDirection.outgoing,
-              )));
+    for (final doc in incomingSnapshot.docs) {
+      final data = doc.data();
+      if (data['status'] == 'pending') {
+        incomingRequests.add(FriendRequest.fromRemote(
+          id: doc.id,
+          data: data,
+          direction: FriendRequestDirection.incoming,
+        ));
+      } else if (data['status'] == 'accepted') {
+        final friendUsername = normalizeUsername(
+          (data['fromUsername'] as String?) ?? '',
+        );
+        if (friendUsername.isNotEmpty) friends.add(friendUsername);
+      }
+    }
+
+    for (final doc in outgoingSnapshot.docs) {
+      final data = doc.data();
+      if (data['status'] == 'pending') {
+        outgoingRequests.add(FriendRequest.fromRemote(
+          id: doc.id,
+          data: data,
+          direction: FriendRequestDirection.outgoing,
+        ));
+      } else if (data['status'] == 'accepted') {
+        final friendUsername = normalizeUsername(
+          (data['toUsername'] as String?) ?? '',
+        );
+        if (friendUsername.isNotEmpty) friends.add(friendUsername);
+      }
+    }
   }
 
   Future<QueryDocumentSnapshot<Map<String, dynamic>>?> _findUserByUsername(
     String username,
   ) async {
     final snapshot = await _firestore
-        .collection('users')
+        .collection('publicProfiles')
         .where('usernameLower', isEqualTo: username)
         .limit(1)
         .get();

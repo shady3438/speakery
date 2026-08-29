@@ -57,13 +57,27 @@ class _LoginScreenState extends State<LoginScreen> {
         final user = userCredential.user;
 
         if (user != null) {
+          final email = user.email ?? _emailController.text.trim();
+          final defaultName = email.split('@').first;
+          final defaultUsername = _normalizeUsername(defaultName);
+
           await _firestore.collection('users').doc(user.uid).set({
-            'email': user.email,
-            'name': user.email!.split('@')[0], // Default username.
+            'email': email,
+            'name': defaultName,
+            'username': defaultUsername,
+            'usernameLower': defaultUsername,
             'level': 'A1',
             'xp': 0,
             'streak': 0,
             'createdAt': FieldValue.serverTimestamp(),
+          });
+
+          await _firestore.collection('publicProfiles').doc(user.uid).set({
+            'name': defaultName,
+            'username': defaultUsername,
+            'usernameLower': defaultUsername,
+            'bio': 'Building fluency one lesson at a time.',
+            'updatedAt': FieldValue.serverTimestamp(),
           });
         }
       }
@@ -84,6 +98,21 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  String _normalizeUsername(String value) {
+    final buffer = StringBuffer();
+    for (final unit
+        in value.toLowerCase().trim().replaceAll('@', '').codeUnits) {
+      final isLetter = unit >= 97 && unit <= 122;
+      final isDigit = unit >= 48 && unit <= 57;
+      final isAllowedSymbol = unit == 95 || unit == 46;
+      if (isLetter || isDigit || isAllowedSymbol) {
+        buffer.writeCharCode(unit);
+      }
+    }
+    final username = buffer.toString();
+    return username.length >= 3 ? username : 'learner${DateTime.now().year}';
   }
 
   String _authMessageFor(FirebaseAuthException error) {

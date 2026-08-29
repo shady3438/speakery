@@ -15,6 +15,13 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
+      allow read: if isSelf(uid) || isAdmin();
+      allow create: if isSelf(uid) || isAdmin();
+      allow update: if isSelf(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /publicProfiles/{uid} {
       allow read: if signedIn();
       allow create: if isSelf(uid) || isAdmin();
       allow update: if isSelf(uid) || isAdmin();

@@ -35,6 +35,9 @@ Firebase-backed admin console.
 - `docs/`: release, admin, privacy, terms, and data safety notes
 - `config/release_defines.example.json`: safe release define template
 
+Turkish developer handoff instructions are available in
+`docs/developer_handoff_tr.md`.
+
 ## Required Local Setup
 
 Install:

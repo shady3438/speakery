@@ -76,6 +76,10 @@ uygulama kayitlariyla birlikte yapilmalidir.
 Mobil uygulamaya OpenAI API anahtari konmaz. Uygulama yalnizca Firebase
 Functions uzerinden gecen kimlik dogrulamali endpoint'leri kullanir.
 
+`.env.example` arkadaslarla paylasilabilir ve provider secret icermez. Flutter
+uygulamasi `.env` dosyasini dogrudan okumaz; uygulamayi calistirirken JSON
+bicimi kullanilir:
+
 ```bash
 copy env.example.json env.json
 flutter run --dart-define-from-file=env.json

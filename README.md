@@ -81,6 +81,9 @@ For iOS, add your own `ios/Runner/GoogleService-Info.plist` from Firebase.
 The app must call backend AI proxy endpoints. Do not place provider API keys in
 the mobile app.
 
+`.env.example` contains shareable dotenv-style project values for development
+tools. Flutter itself reads the JSON file shown below.
+
 Safe local template:
 
 ```bash

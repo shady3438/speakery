@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/app_progress.dart';
@@ -8,6 +9,7 @@ import '../../theme/speakery_theme_adapter.dart';
 import '../../theme/speakery_theme_tokens.dart';
 import '../../widgets/ios_liquid_glass.dart';
 import '../../widgets/premium_feedback.dart';
+import '../../widgets/theme_toggle_button.dart';
 import '../learn_overview_screen/learn_overview_screen.dart';
 import '../premium_screen/premium_screen.dart';
 import '../settings_screen/settings_screen.dart';
@@ -48,7 +50,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               return ListView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 118),
+                padding: const EdgeInsets.fromLTRB(
+                    16, kThemeToggleReserve, 16, 118),
                 children: [
                   _topBar(),
                   const SizedBox(height: 14),
@@ -231,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 gradient: RadialGradient(
                   colors: [
                     const Color(0xFFEC4899).withAlpha(48),
-                    Colors.transparent,
+                    const Color(0xFFEC4899).withAlpha(0),
                   ],
                 ),
               ),
@@ -336,22 +339,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _socialStats() {
     return Row(
       children: [
-        _socialStat('${_socialProfile.followersCount}',
-            t('Followers', 'Takipçi'), const Color(0xFFEC4899)),
+        _socialStat(
+          '${_socialProfile.followersCount}',
+          t('Followers', 'Takipçi'),
+          const Color(0xFFEC4899),
+          () => _showConnections(
+            title: t('Followers', 'Takipçiler'),
+            connections: _socialProfile.followerConnections,
+            accent: const Color(0xFFEC4899),
+            emptyMessage: t(
+              'Nobody has added you yet.',
+              'Henüz kimse seni eklemedi.',
+            ),
+          ),
+        ),
         const SizedBox(width: 9),
-        _socialStat('${_socialProfile.followingCount}', t('Following', 'Takip'),
-            const Color(0xFF8B5CF6)),
+        _socialStat(
+          '${_socialProfile.followingCount}',
+          t('Following', 'Takip'),
+          const Color(0xFF8B5CF6),
+          () => _showConnections(
+            title: t('Following', 'Takip ettiklerin'),
+            connections: _socialProfile.followingConnections,
+            accent: const Color(0xFF8B5CF6),
+            emptyMessage: t(
+              'You have not added anyone yet.',
+              'Henüz kimseyi eklemedin.',
+            ),
+          ),
+        ),
         const SizedBox(width: 9),
-        _socialStat('${_socialProfile.friendsCount}', t('Friends', 'Arkadaş'),
-            const Color(0xFF06B6D4)),
+        _socialStat(
+          '${_socialProfile.friendsCount}',
+          t('Friends', 'Arkadaş'),
+          const Color(0xFF06B6D4),
+          () => _showConnections(
+            title: t('Friends', 'Arkadaşlar'),
+            connections: _socialProfile.friendConnections,
+            accent: const Color(0xFF06B6D4),
+            emptyMessage: t(
+              'No friends yet. Send a request to get started.',
+              'Henüz arkadaşın yok. Bir istek göndererek başla.',
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _socialStat(String value, String label, Color color) {
+  void _showConnections({
+    required String title,
+    required List<SocialConnection> connections,
+    required Color accent,
+    required String emptyMessage,
+  }) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ConnectionsSheet(
+        title: title,
+        connections: connections,
+        accent: accent,
+        emptyMessage: emptyMessage,
+        isEnglish: isEnglish,
+      ),
+    );
+  }
+
+  Widget _socialStat(
+    String value,
+    String label,
+    Color color,
+    VoidCallback onTap,
+  ) {
     final tokens = SpeakeryThemeTokens.of(context);
     return Expanded(
-      child: Container(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
         padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
@@ -380,6 +447,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -860,6 +928,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   );
                 },
               ),
+              Divider(
+                color: SpeakeryThemeTokens.of(context).border,
+                height: 18,
+              ),
+              _settingsRow(
+                Icons.logout_rounded,
+                t('Log out', 'Çıkış yap'),
+                t('Sign out and return to the login screen',
+                    'Oturumu kapat ve giriş ekranına dön'),
+                _confirmSignOut,
+                danger: true,
+              ),
             ],
           ),
         ),
@@ -867,13 +947,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _confirmSignOut() async {
+    final tokens = SpeakeryThemeTokens.of(context);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: tokens.elevatedSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
+        title: Text(
+          t('Log out?', 'Çıkış yapılsın mı?'),
+          style: TextStyle(
+            color: tokens.textPrimary,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        content: Text(
+          t('You will return to the login screen.',
+              'Giriş ekranına döneceksin.'),
+          style: TextStyle(
+            color: tokens.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(
+              t('Cancel', 'Vazgeç'),
+              style: TextStyle(color: tokens.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              t('Log out', 'Çıkış yap'),
+              style: TextStyle(
+                color: tokens.error,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    // Clear the device-local copies before leaving, or the next account to sign
+    // in here would open on the previous learner's name and progress.
+    await SocialProfileStore.instance.clearForSignOut();
+    AppProgress.instance.resetLocalProgress();
+    await FirebaseAuth.instance.signOut();
+
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+  }
+
   Widget _settingsRow(
     IconData icon,
     String title,
     String subtitle,
-    VoidCallback onTap,
-  ) {
+    VoidCallback onTap, {
+    bool danger = false,
+  }) {
     final tokens = SpeakeryThemeTokens.of(context);
+    final accent = danger ? tokens.error : tokens.iconPrimary;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -887,10 +1028,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                color: tokens.chipSurface,
-                border: Border.all(color: tokens.border),
+                color: danger
+                    ? tokens.error.withAlpha(tokens.isLight ? 26 : 34)
+                    : tokens.chipSurface,
+                border: Border.all(
+                  color: danger
+                      ? tokens.error.withAlpha(tokens.isLight ? 90 : 100)
+                      : tokens.border,
+                ),
               ),
-              child: Icon(icon, color: tokens.iconPrimary, size: 21),
+              child: Icon(icon, color: accent, size: 21),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -900,7 +1047,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(
                     title,
                     style: TextStyle(
-                      color: tokens.textPrimary,
+                      color: danger ? tokens.error : tokens.textPrimary,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -1020,7 +1167,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _showEditProfileSheet() async {
     final result = await showModalBottomSheet<_ProfileEditResult>(
       context: context,
-      backgroundColor: const Color(0xFF0B1020),
+      backgroundColor: SpeakeryThemeTokens.of(context).elevatedSurface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
@@ -1062,7 +1209,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _showAddFriendSheet() async {
     final username = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: const Color(0xFF0B1020),
+      backgroundColor: SpeakeryThemeTokens.of(context).elevatedSurface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
@@ -1306,6 +1453,258 @@ class _MetricTile extends StatelessWidget {
               color: tokens.textSecondary,
               fontSize: 10.3,
               fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Lists the people behind one of the three profile counters.
+///
+/// Friends are stored as bare usernames, so display names are fetched once when
+/// the sheet opens; until they land each row shows the handle.
+class _ConnectionsSheet extends StatefulWidget {
+  final String title;
+  final List<SocialConnection> connections;
+  final Color accent;
+  final String emptyMessage;
+  final bool isEnglish;
+
+  const _ConnectionsSheet({
+    required this.title,
+    required this.connections,
+    required this.accent,
+    required this.emptyMessage,
+    required this.isEnglish,
+  });
+
+  @override
+  State<_ConnectionsSheet> createState() => _ConnectionsSheetState();
+}
+
+class _ConnectionsSheetState extends State<_ConnectionsSheet> {
+  Map<String, SocialProfileSummary> _profiles =
+      const <String, SocialProfileSummary>{};
+
+  String t(String en, String tr) => widget.isEnglish ? en : tr;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveProfiles();
+  }
+
+  Future<void> _resolveProfiles() async {
+    if (widget.connections.isEmpty) return;
+    final profiles = await SocialProfileStore.instance.profilesFor(
+      widget.connections.map((item) => item.uid),
+    );
+    if (!mounted || profiles.isEmpty) return;
+    setState(() => _profiles = profiles);
+  }
+
+  String _kindLabel(SocialConnectionKind kind) {
+    return switch (kind) {
+      SocialConnectionKind.friend => t('Friend', 'Arkadaş'),
+      SocialConnectionKind.incomingRequest =>
+        t('Wants to add you', 'Seni ekledi'),
+      SocialConnectionKind.outgoingRequest =>
+        t('Request sent', 'İstek gönderildi'),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
+    final connections = widget.connections;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * .7,
+      ),
+      decoration: BoxDecoration(
+        color: tokens.elevatedSurface,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: tokens.border),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: tokens.textMuted.withAlpha(90),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Text(
+                widget.title,
+                style: TextStyle(
+                  color: tokens.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: widget.accent.withAlpha(tokens.isLight ? 30 : 38),
+                ),
+                child: Text(
+                  '${connections.length}',
+                  style: TextStyle(
+                    color: tokens.readableAccent(widget.accent),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (connections.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              child: Text(
+                widget.emptyMessage,
+                style: TextStyle(
+                  color: tokens.textSecondary,
+                  fontSize: 13,
+                  height: 1.4,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          else
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                physics: const BouncingScrollPhysics(),
+                itemCount: connections.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 9),
+                itemBuilder: (context, index) {
+                  final person = connections[index];
+                  return _ConnectionRow(
+                    tokens: tokens,
+                    accent: widget.accent,
+                    name: person.nameOr(_profiles),
+                    handle: person.handleOr(_profiles),
+                    initial: person.initialOr(_profiles),
+                    kindLabel: _kindLabel(person.kind),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ConnectionRow extends StatelessWidget {
+  final SpeakeryThemeTokens tokens;
+  final Color accent;
+  final String name;
+  final String handle;
+  final String initial;
+  final String kindLabel;
+
+  const _ConnectionRow({
+    required this.tokens,
+    required this.accent,
+    required this.name,
+    required this.handle,
+    required this.initial,
+    required this.kindLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: tokens.brandGradient,
+            ),
+            child: Text(
+              initial,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (handle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    handle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: tokens.textSecondary,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              color: accent.withAlpha(tokens.isLight ? 26 : 34),
+            ),
+            child: Text(
+              kindLabel,
+              style: TextStyle(
+                color: tokens.readableAccent(accent),
+                fontSize: 9.5,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],

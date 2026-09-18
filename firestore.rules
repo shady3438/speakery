@@ -28,6 +28,61 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /usernames/{usernameLower} {
+      // Deliberately world-readable: the sign-up form has to answer "is this
+      // handle free?" before anyone is signed in, and publicProfiles is closed
+      // to signed-out visitors. A document here holds only the uid that claimed
+      // the handle — no email, no name, nothing personal.
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt']);
+
+      // A handle can only be released or re-pointed by the account holding it.
+      allow update, delete: if isAdmin() || resource.data.uid == request.auth.uid;
+    }
+
+    match /posts/{postId} {
+      // The community feed is shared: every signed-in learner reads the same
+      // collection, which is what makes one account's post appear on another's.
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 600
+        && request.resource.data.likes == 0
+        && request.resource.data.likedBy.size() == 0;
+
+      // Authors may edit their own post. Everyone else may only move the
+      // reaction fields — never the text, the author or the level.
+      allow update: if isAdmin()
+        || resource.data.uid == request.auth.uid
+        || (signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['likes', 'likedBy', 'reposts', 'repostedBy',
+                           'comments']));
+
+      allow delete: if isAdmin() || resource.data.uid == request.auth.uid;
+
+      match /comments/{commentId} {
+        // Replies are part of the shared feed, so anyone signed in can read
+        // them; writing one is limited to the account it is attributed to.
+        allow read: if signedIn();
+
+        allow create: if signedIn()
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 400;
+
+        allow update, delete: if isAdmin()
+          || resource.data.uid == request.auth.uid;
+      }
+    }
+
     match /friendRequests/{requestId} {
       allow create: if signedIn()
         && request.resource.data.fromUid == request.auth.uid

@@ -5,6 +5,7 @@ import '../../theme/speakery_theme_adapter.dart';
 import '../../theme/speakery_theme_tokens.dart';
 import '../../widgets/ios_liquid_glass.dart';
 import '../../widgets/premium_feedback.dart';
+import '../../widgets/theme_toggle_button.dart';
 import 'package:speakery/presentation/reading_screen/reading_home_screen.dart';
 import '../listening_screen/listening_practice_screen.dart';
 import '../premium_screen/premium_screen.dart';
@@ -62,9 +63,30 @@ const _cefrColors = {
   'C2': _CEFRPalette(Color(0xFFFF8A00), Color(0xFFFF4FD8)),
 };
 
-_CEFRPalette _cefrPalette(String level) =>
-    _cefrColors[level] ??
-    const _CEFRPalette(Color(0xFF00C2FF), Color(0xFF2563EB));
+// The two warm levels are the problem children on the light palette. B1's
+// #F59E0B and C2's #FF8A00 are bright enough that white labels on the selected
+// pill land near 2:1, and the same colours used as accent text on a white chip
+// are no better. These deeper tones of the same hue keep each level instantly
+// recognisable while carrying a white label. The dark palette is left alone —
+// the bright ambers read perfectly well against it.
+/// The warm accent the exam-prep and premium surfaces use, independent of the
+/// selected level. Paint text and icons with `tokens.readableAccent(...)` of
+/// it, never raw — on the light palette the raw tone is a smudge.
+const _examAccent = Color(0xFFFF8A00);
+
+const _cefrColorsLight = {
+  'B1': _CEFRPalette(Color(0xFFB5680A), Color(0xFF8A4C07)),
+  'C2': _CEFRPalette(Color(0xFFC75A0B), Color(0xFFC42BA0)),
+};
+
+_CEFRPalette _cefrPalette(String level, {bool isLight = false}) {
+  if (isLight) {
+    final light = _cefrColorsLight[level];
+    if (light != null) return light;
+  }
+  return _cefrColors[level] ??
+      const _CEFRPalette(Color(0xFF00C2FF), Color(0xFF2563EB));
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LEARN OVERVIEW SCREEN
@@ -297,8 +319,10 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
         curve: Curves.easeOutCubic,
         color: tokens.background,
         child: IosDynamicGlassBackdrop(
-          primary: _cefrPalette(_selectedLevel).start,
-          secondary: _cefrPalette(_selectedLevel).end,
+          primary:
+              _cefrPalette(_selectedLevel, isLight: tokens.isLight).start,
+          secondary:
+              _cefrPalette(_selectedLevel, isLight: tokens.isLight).end,
           child: SafeArea(
             child: FadeTransition(
               opacity: _entryFade,
@@ -306,7 +330,8 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
                 position: _entrySlide,
                 child: ListView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+                  padding: const EdgeInsets.fromLTRB(
+                      16, kThemeToggleReserve, 16, 32),
                   children: [
                     _buildTopBar(),
                     const SizedBox(height: 12),
@@ -342,8 +367,8 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
   // ─────────────────────────────────────────────
 
   Widget _buildTopBar() {
-    final pal = _cefrPalette(_selectedLevel);
     final tokens = SpeakeryThemeTokens.of(context);
+    final pal = _cefrPalette(_selectedLevel, isLight: tokens.isLight);
 
     return _SolidCard(
       radius: 28,
@@ -413,7 +438,9 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
                         child: Text(
                           _selectedLevel,
                           style: TextStyle(
-                            color: pal.start.withAlpha(235),
+                            color: tokens
+                                .readableAccent(pal.start)
+                                .withAlpha(235),
                             fontSize: 9.8,
                             fontWeight: FontWeight.w900,
                           ),
@@ -465,8 +492,9 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
       animation: AppProgress.instance,
       builder: (context, _) {
         final p = AppProgress.instance;
-        final pal = _cefrPalette(_selectedLevel);
         final tokens = SpeakeryThemeTokens.of(context);
+        final pal =
+            _cefrPalette(_selectedLevel, isLight: tokens.isLight);
 
         return _SolidCard(
           radius: 28,
@@ -486,7 +514,7 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
                     gradient: RadialGradient(
                       colors: [
                         pal.start.withAlpha(34),
-                        Colors.transparent,
+                        pal.start.withAlpha(0),
                       ],
                     ),
                   ),
@@ -618,7 +646,8 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
   // ─────────────────────────────────────────────
 
   Widget _buildLevelSelector() {
-    final pal = _cefrPalette(_selectedLevel);
+    final tokens = SpeakeryThemeTokens.of(context);
+    final pal = _cefrPalette(_selectedLevel, isLight: tokens.isLight);
     return IosLiquidPillSelector(
       items: _levels.map(IosPillItem.new).toList(growable: false),
       selectedIndex: _selectedLevelIndex,
@@ -636,8 +665,8 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
   // ─────────────────────────────────────────────
 
   Widget _buildSectionLabel(String title, String trailing) {
-    final pal = _cefrPalette(_selectedLevel);
     final tokens = SpeakeryThemeTokens.of(context);
+    final pal = _cefrPalette(_selectedLevel, isLight: tokens.isLight);
     return Row(
       children: [
         Text(
@@ -659,7 +688,7 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
           child: Text(
             trailing,
             style: TextStyle(
-              color: pal.start.withAlpha(235),
+              color: tokens.readableAccent(pal.start).withAlpha(235),
               fontSize: 11,
               fontWeight: FontWeight.w900,
             ),
@@ -670,8 +699,8 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
   }
 
   Widget _buildActiveFilters() {
-    final pal = _cefrPalette(_selectedLevel);
     final tokens = SpeakeryThemeTokens.of(context);
+    final pal = _cefrPalette(_selectedLevel, isLight: tokens.isLight);
     final parts = <String>[];
     if (_searchQuery.trim().isNotEmpty) {
       parts.add('"${_searchQuery.trim()}"');
@@ -715,7 +744,7 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
 
   Widget _buildEmptyModules() {
     final tokens = SpeakeryThemeTokens.of(context);
-    final pal = _cefrPalette(_selectedLevel);
+    final pal = _cefrPalette(_selectedLevel, isLight: tokens.isLight);
     return _SolidCard(
       radius: 26,
       padding: const EdgeInsets.all(18),
@@ -830,9 +859,9 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
                     color: const Color(0xFFFF8A00).withAlpha(55),
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.school_rounded,
-                  color: Color(0xFFFF8A00),
+                  color: tokens.readableAccent(_examAccent),
                   size: 21,
                 ),
               ),
@@ -876,8 +905,8 @@ class _LearnOverviewScreenState extends State<LearnOverviewScreen>
                 ),
                 child: Text(
                   t('Plan', 'Plan'),
-                  style: const TextStyle(
-                    color: Color(0xFFFF8A00),
+                  style: TextStyle(
+                    color: tokens.readableAccent(_examAccent),
                     fontSize: 10.5,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1248,9 +1277,9 @@ class _ExamPackSheet extends StatelessWidget {
                       color: const Color(0xFFFF8A00).withAlpha(52),
                     ),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.school_rounded,
-                    color: Color(0xFFFF8A00),
+                    color: tokens.readableAccent(_examAccent),
                     size: 22,
                   ),
                 ),
@@ -1616,8 +1645,9 @@ class _ModuleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final locked = module.premium && !_available;
     final active = _available;
-    final levelPal = _cefrPalette(selectedLevel);
     final tokens = SpeakeryThemeTokens.of(context);
+    final levelPal =
+        _cefrPalette(selectedLevel, isLight: tokens.isLight);
 
     return _TapScale(
       onTap: onTap,
@@ -1787,6 +1817,10 @@ class _MiniTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
+    // The chip is a wash of `color` over the page, so it is near-white in light
+    // mode: a white label there is invisible, and a raw amber icon nearly so.
+    final ink = tokens.readableAccent(color);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
@@ -1797,12 +1831,12 @@ class _MiniTag extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 13),
+          Icon(icon, color: ink, size: 13),
           const SizedBox(width: 4),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: tokens.textPrimary,
               fontSize: 10.5,
               fontWeight: FontWeight.w900,
             ),
@@ -1826,6 +1860,8 @@ class _CompactStatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
+    final ink = tokens.readableAccent(color);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
@@ -1836,12 +1872,12 @@ class _CompactStatChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 12.5),
+          Icon(icon, color: ink, size: 12.5),
           const SizedBox(width: 5),
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withAlpha(190),
+              color: tokens.textPrimary.withAlpha(tokens.isLight ? 230 : 190),
               fontSize: 10.4,
               fontWeight: FontWeight.w800,
             ),
@@ -2011,8 +2047,8 @@ class _SkillLevelScreenState extends State<SkillLevelScreen> {
   @override
   Widget build(BuildContext context) {
     final module = widget.module;
-    final pal = _cefrPalette(_level);
     final tokens = SpeakeryThemeTokens.of(context);
+    final pal = _cefrPalette(_level, isLight: tokens.isLight);
 
     return Scaffold(
       backgroundColor: tokens.background,
@@ -2278,7 +2314,7 @@ class _SkillLevelGrid extends StatelessWidget {
       child: Row(
         children: List.generate(levels.length, (i) {
           final sel = i == selectedIndex;
-          final pal = _cefrPalette(levels[i]);
+          final pal = _cefrPalette(levels[i], isLight: tokens.isLight);
           return Expanded(
             child: Padding(
               padding: EdgeInsets.only(right: i == levels.length - 1 ? 0 : 3),

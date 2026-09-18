@@ -31,17 +31,26 @@ class _AppNavigationBarState extends State<AppNavigationBar>
   double _dragDx = 0;
   late final AnimationController _liquidController;
 
+  /// The places people open every day, Community sitting in the middle slot.
+  /// Everything else — the practice screens, Arena, Dictionary, Premium,
+  /// Settings — lives in the drawer rather than crowding in here.
   final List<_NavItem> _items = const [
-    _NavItem(Icons.home_outlined, Icons.home_rounded, 'Home'),
-    _NavItem(Icons.school_outlined, Icons.school_rounded, 'Learn'),
-    _NavItem(Icons.people_outline_rounded, Icons.people_rounded, 'Social'),
+    _NavItem(Icons.home_outlined, Icons.home_rounded, 'Home', 0),
+    _NavItem(Icons.school_outlined, Icons.school_rounded, 'Learn', 1),
+    _NavItem(Icons.people_outline_rounded, Icons.people_rounded, 'Social', 2),
     _NavItem(
       Icons.chat_bubble_outline_rounded,
       Icons.chat_bubble_rounded,
       'Chat',
+      3,
     ),
-    _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
+    _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile', 4),
   ];
+
+  /// Slot of the on-screen tab within this bar, or -1 when the shell is showing
+  /// a screen the bar does not carry (Social, opened from the drawer).
+  int get _selectedSlot =>
+      _items.indexWhere((item) => item.shellIndex == widget.currentIndex);
 
   @override
   void initState() {
@@ -73,7 +82,8 @@ class _AppNavigationBarState extends State<AppNavigationBar>
         child: LayoutBuilder(
           builder: (context, constraints) {
             final itemWidth = constraints.maxWidth / _items.length;
-            final selectedLeft = itemWidth * widget.currentIndex;
+            final slot = _selectedSlot;
+            final selectedLeft = itemWidth * (slot < 0 ? 0 : slot);
 
             return GestureDetector(
               behavior: HitTestBehavior.translucent,
@@ -114,23 +124,31 @@ class _AppNavigationBarState extends State<AppNavigationBar>
                           top: 6,
                           bottom: 6,
                           width: itemWidth - 10,
-                          child: _ActiveLiquidPill(
-                            key: const ValueKey<String>('app-nav-active-pill'),
-                            tokens: tokens,
-                            animation: _liquidController,
+                          child: AnimatedOpacity(
+                            duration: IosLiquidMotion.settle,
+                            curve: IosLiquidMotion.settleCurve,
+                            // Nothing in the bar is selected while a drawer-only
+                            // screen is up, so the pill fades out instead of
+                            // lying about which tab you are on.
+                            opacity: slot < 0 ? 0 : 1,
+                            child: _ActiveLiquidPill(
+                              key: const ValueKey<String>('app-nav-active-pill'),
+                              tokens: tokens,
+                              animation: _liquidController,
+                            ),
                           ),
                         ),
                         Row(
                           children: List.generate(_items.length, (index) {
                             final item = _items[index];
-                            final isActive = index == widget.currentIndex;
 
                             return Expanded(
                               child: _NavTapTarget(
                                 item: item,
-                                isActive: isActive,
+                                isActive: index == slot,
                                 compact: widget.compact,
-                                onTap: () => widget.onTabChanged(index),
+                                onTap: () =>
+                                    widget.onTabChanged(item.shellIndex),
                               ),
                             );
                           }),
@@ -153,12 +171,15 @@ class _AppNavigationBarState extends State<AppNavigationBar>
     final hasEnoughDistance = _dragDx.abs() >= 44;
     if (!hasEnoughVelocity && !hasEnoughDistance) return;
 
+    final slot = _selectedSlot;
+    if (slot < 0) return;
+
     final direction = hasEnoughDistance ? _dragDx : -velocity;
-    final nextIndex = direction < 0
-        ? (widget.currentIndex + 1).clamp(0, _items.length - 1)
-        : (widget.currentIndex - 1).clamp(0, _items.length - 1);
-    if (nextIndex != widget.currentIndex) {
-      widget.onTabChanged(nextIndex);
+    final nextSlot = direction < 0
+        ? (slot + 1).clamp(0, _items.length - 1)
+        : (slot - 1).clamp(0, _items.length - 1);
+    if (nextSlot != slot) {
+      widget.onTabChanged(_items[nextSlot].shellIndex);
     }
   }
 }
@@ -242,9 +263,9 @@ class _ActiveLiquidPill extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                     gradient: LinearGradient(
                       colors: [
-                        Colors.transparent,
+                        Colors.white.withAlpha(0),
                         Colors.white.withAlpha(tokens.isLight ? 190 : 72),
-                        Colors.transparent,
+                        Colors.white.withAlpha(0),
                       ],
                     ),
                   ),
@@ -370,5 +391,9 @@ class _NavItem {
   final IconData activeIcon;
   final String label;
 
-  const _NavItem(this.icon, this.activeIcon, this.label);
+  /// Index of this destination in AppShell's IndexedStack, which no longer
+  /// matches the item's position now that the bar carries only four of them.
+  final int shellIndex;
+
+  const _NavItem(this.icon, this.activeIcon, this.label, this.shellIndex);
 }

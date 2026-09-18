@@ -10,6 +10,7 @@ import 'presentation/onboarding_screen/onboarding_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/speakery_theme_adapter.dart';
 import 'widgets/custom_error_widget.dart';
+import 'widgets/liquid_glass_refraction.dart';
 import 'data/grammar/grammar_audit_debug.dart';
 import 'data/app_progress.dart';
 import 'services/notification_service.dart';
@@ -32,6 +33,10 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Sıvı cam kenar kırılması shader'ı (yalnızca Impeller: Android/iOS).
+  // Desteklenmeyen platformlarda sessizce atlanır.
+  await LiquidGlassRefraction.load();
 
   // Hata ekranını senin özel widget'ınla değiştirir
   await NotificationService.instance.initialize();

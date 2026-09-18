@@ -5,12 +5,11 @@ import '../../theme/app_theme.dart';
 import '../../theme/speakery_theme_adapter.dart';
 import '../../theme/speakery_theme_tokens.dart';
 import '../../widgets/ios_liquid_glass.dart';
+import '../../widgets/theme_toggle_button.dart';
 import '../grammar_skill_screen/grammar_skill_screen.dart';
 import '../listening_screen/listening_practice_screen.dart';
 import '../reading_screen/reading_home_screen.dart';
-import '../speaking_screen/speaking_screen.dart';
 import '../vocabulary_screen/vocabulary_screen.dart';
-import '../writing_screen/writing_practice_screen.dart';
 
 const Color _blue = Color(0xFF3B82F6);
 const Color _purple = Color(0xFF8B5CF6);
@@ -64,16 +63,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _go(int index) => widget.onNavigate?.call(index);
 
-  void _openWriting() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const SpeakeryThemeAdapter(
-          child: WritingPracticeScreen(),
-        ),
-      ),
-    );
-  }
 
   void _openGrammar() {
     Navigator.push(
@@ -114,19 +103,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openVocabulary() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SpeakeryThemeAdapter(
-          child: VocabularyScreen(
-            initialLevel: AppProgress.instance.englishLevel,
-            isEnglish: _isEnglish,
-          ),
-        ),
-      ),
-    );
-  }
 
   void _openArena() {
     Navigator.push(
@@ -142,14 +118,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openSpeaking() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const SpeakeryThemeAdapter(child: SpeakingScreen()),
-      ),
-    );
-  }
 
   void _openRecommended(AppProgress progress) {
     switch (progress.completedCount % 3) {
@@ -198,7 +166,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   final progress = AppProgress.instance;
                   return ListView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 122),
+                    padding: const EdgeInsets.fromLTRB(
+                        16, kThemeToggleReserve, 16, 122),
                     children: [
                       _hero(tokens),
                       const SizedBox(height: 14),
@@ -220,13 +189,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 10),
                       _dailyRoute(tokens),
-                      const SizedBox(height: 18),
-                      _sectionTitle(
-                        tokens,
-                        t('Quick actions', 'Hızlı işlemler'),
-                      ),
-                      const SizedBox(height: 10),
-                      _quickActions(tokens),
                       const SizedBox(height: 14),
                       _socialPreview(tokens),
                     ],
@@ -477,108 +439,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _quickActions(SpeakeryThemeTokens tokens) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columnCount = constraints.maxWidth >= 760 ? 4 : 2;
-        final itemWidth =
-            (constraints.maxWidth - ((columnCount - 1) * 10)) / columnCount;
-
-        return GridView.count(
-          crossAxisCount: columnCount,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: itemWidth / 96,
-          children: [
-            _ActionCard(
-              key: const ValueKey('home-action-grammar'),
-              tokens: tokens,
-              icon: Icons.auto_fix_high_rounded,
-              title: t('Practice Grammar', 'Gramer çalış'),
-              subtitle: t('A1-C2 lessons', 'A1-C2 dersleri'),
-              color: _tone(tokens, _purple),
-              onTap: _openGrammar,
-            ),
-            _ActionCard(
-              key: const ValueKey('home-action-listening'),
-              tokens: tokens,
-              icon: Icons.headphones_rounded,
-              title: t('Listening Lab', 'Dinleme Laboratuvarı'),
-              subtitle: t('Guided missions', 'Rehberli görevler'),
-              color: _tone(tokens, _orange, 2),
-              onTap: _openListening,
-            ),
-            _ActionCard(
-              key: const ValueKey('home-action-reading'),
-              tokens: tokens,
-              icon: Icons.menu_book_rounded,
-              title: t('Read a Story', 'Bir hikâye oku'),
-              subtitle: t('Reading library', 'Okuma kütüphanesi'),
-              color: _tone(tokens, _blue, 1),
-              onTap: _openReading,
-            ),
-            _ActionCard(
-              key: const ValueKey('home-action-voxa'),
-              tokens: tokens,
-              icon: Icons.chat_bubble_rounded,
-              title: t('Talk to Voxa', 'Voxa ile konuş'),
-              subtitle: t('AI language coach', 'AI dil koçu'),
-              color: _tone(tokens, _pink, 3),
-              onTap: () => _go(3),
-            ),
-            _ActionCard(
-              key: const ValueKey('home-action-arena'),
-              tokens: tokens,
-              icon: Icons.emoji_events_rounded,
-              title: t('Arena', 'Arena'),
-              subtitle: t('Daily XP games', 'Günlük XP oyunları'),
-              color: _tone(tokens, _orange, 2),
-              onTap: _openArena,
-            ),
-            _ActionCard(
-              key: const ValueKey('home-action-writing'),
-              tokens: tokens,
-              icon: Icons.edit_note_rounded,
-              title: t('Writing Studio', 'Yazma Stüdyosu'),
-              subtitle: t('Write with feedback', 'Geri bildirimle yaz'),
-              color: _tone(tokens, _green, 2),
-              onTap: _openWriting,
-            ),
-            _ActionCard(
-              key: const ValueKey('home-action-learn'),
-              tokens: tokens,
-              icon: Icons.route_rounded,
-              title: t('Learning Path', 'Öğrenme Rotası'),
-              subtitle: t('All skills', 'Tüm beceriler'),
-              color: _tone(tokens, tokens.secondaryAccent, 1),
-              onTap: () => _go(1),
-            ),
-            _ActionCard(
-              key: const ValueKey('home-action-speaking'),
-              tokens: tokens,
-              icon: Icons.record_voice_over_rounded,
-              title: t('Speaking Room', 'Konuşma Odası'),
-              subtitle: t('Record and practise', 'Kaydet ve pratik yap'),
-              color: _tone(tokens, tokens.secondaryAccent, 3),
-              onTap: _openSpeaking,
-            ),
-            _ActionCard(
-              key: const ValueKey('home-action-vocabulary'),
-              tokens: tokens,
-              icon: Icons.style_rounded,
-              title: t('Vocabulary', 'Kelime Çalışması'),
-              subtitle: t('Cards and review', 'Kartlar ve tekrar'),
-              color: _tone(tokens, tokens.foxAccent),
-              onTap: _openVocabulary,
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _dailyRoute(SpeakeryThemeTokens tokens) {
     return Row(
       children: [
@@ -805,7 +665,7 @@ class _ArenaSpotlightState extends State<_ArenaSpotlight>
                           gradient: RadialGradient(
                             colors: [
                               end.withAlpha(tokens.isLight ? 38 : 48),
-                              Colors.transparent,
+                              end.withAlpha(0),
                             ],
                           ),
                         ),
@@ -1085,24 +945,58 @@ class _ProgressTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ink = tokens.readableAccent(color);
+
+    // Same shape as the route tiles below: a top row anchored at both edges,
+    // then the text. It is that row, not the text, that makes the card feel
+    // filled — a centred or left-hugging column leaves the width empty.
     return Expanded(
       child: _GlassCard(
         tokens: tokens,
         accent: color,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 11),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 21),
-            const SizedBox(height: 9),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: tokens.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
+            Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color.withAlpha(tokens.isLight ? 28 : 38),
+                    border: Border.all(
+                      color: color.withAlpha(tokens.isLight ? 68 : 82),
+                    ),
+                  ),
+                  child: Icon(icon, color: ink, size: 13),
+                ),
+                const Spacer(),
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: ink,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 13),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                maxLines: 1,
+                style: TextStyle(
+                  color: tokens.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -.2,
+                ),
               ),
             ),
             const SizedBox(height: 3),
@@ -1112,109 +1006,11 @@ class _ProgressTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: tokens.textMuted,
-                fontSize: 10.5,
+                fontSize: 11,
                 fontWeight: FontWeight.w800,
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionCard extends StatefulWidget {
-  final SpeakeryThemeTokens tokens;
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    super.key,
-    required this.tokens,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  State<_ActionCard> createState() => _ActionCardState();
-}
-
-class _ActionCardState extends State<_ActionCard> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTapUp: (_) => setState(() => _pressed = false),
-      child: AnimatedScale(
-        duration: const Duration(milliseconds: 180),
-        curve: _pressed ? Curves.easeOutCubic : Curves.easeOutBack,
-        scale: _pressed ? .975 : 1,
-        child: _GlassCard(
-          tokens: widget.tokens,
-          accent: widget.color,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(13),
-                  color: widget.color.withAlpha(
-                    widget.tokens.isLight ? 22 : 32,
-                  ),
-                  border: Border.all(
-                    color: widget.color.withAlpha(
-                      widget.tokens.isLight ? 52 : 66,
-                    ),
-                  ),
-                ),
-                child: Icon(widget.icon, color: widget.color, size: 19),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: widget.tokens.textPrimary,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: widget.tokens.textSecondary,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

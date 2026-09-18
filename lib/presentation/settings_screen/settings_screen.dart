@@ -1,8 +1,10 @@
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/app_progress.dart';
+import '../../data/social_profile_store.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/speakery_theme_tokens.dart';
 import '../../services/notification_service.dart';
@@ -540,11 +542,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'Speakery günlük pratik için hazır.'),
                 ),
               ),
+              Divider(color: tokens.border, height: 18),
+              _ActionRow(
+                icon: Icons.logout_rounded,
+                title: t('Log out', 'Çıkış yap'),
+                subtitle: t(
+                  'Sign out and return to the login screen',
+                  'Oturumu kapat ve giriş ekranına dön',
+                ),
+                trailing: t('Log out', 'Çıkış'),
+                danger: true,
+                onTap: _confirmSignOut,
+              ),
             ],
           ),
         );
       },
     );
+  }
+
+  Future<void> _confirmSignOut() async {
+    final confirmed = await PremiumFeedback.confirm(
+      context,
+      title: t('Log out?', 'Çıkış yapılsın mı?'),
+      message: t(
+        'You will return to the login screen.',
+        'Giriş ekranına döneceksin.',
+      ),
+      confirmLabel: t('Log out', 'Çıkış yap'),
+      cancelLabel: t('Cancel', 'Vazgeç'),
+      tone: PremiumFeedbackTone.error,
+    );
+    if (!confirmed || !mounted) return;
+
+    // Clear the device-local copies before leaving, or the next account to sign
+    // in here would open on the previous learner's name and progress.
+    await SocialProfileStore.instance.clearForSignOut();
+    AppProgress.instance.resetLocalProgress();
+    await FirebaseAuth.instance.signOut();
+
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
   Widget _dangerZone() {

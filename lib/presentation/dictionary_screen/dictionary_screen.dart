@@ -1,12 +1,10 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../data/dictionary/dictionary_entries.dart';
 import '../../services/native_speech_service.dart';
+import '../../theme/speakery_theme_tokens.dart';
+import '../../widgets/ios_liquid_glass.dart';
 
-const Color _bg = Color(0xFF050712);
-const Color _panel = Color(0xFF0B1020);
 const Color _blue = Color(0xFF06B6D4);
 const Color _purple = Color(0xFF8B5CF6);
 const Color _pink = Color(0xFFEC4899);
@@ -158,8 +156,9 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   @override
   Widget build(BuildContext context) {
     final entry = _selectedEntry;
+    final tokens = SpeakeryThemeTokens.of(context);
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: tokens.background,
       body: Stack(
         children: [
           const Positioned.fill(child: _CalmLiquidBackground()),
@@ -191,6 +190,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   }
 
   Widget _topBar() {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Row(
       children: [
         _TapScale(
@@ -201,11 +201,11 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(17),
-              color: Colors.white.withAlpha(9),
-              border: Border.all(color: Colors.white.withAlpha(14)),
+              color: tokens.inputSurface,
+              border: Border.all(color: tokens.border),
             ),
-            child: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: Colors.white, size: 16),
+            child: Icon(Icons.arrow_back_ios_new_rounded,
+                color: tokens.textPrimary, size: 16),
           ),
         ),
         const SizedBox(width: 10),
@@ -242,8 +242,8 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                         t('Dictionary', 'Sözlük'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: tokens.textPrimary,
                             fontSize: 19.5,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.45,
@@ -256,7 +256,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            color: Colors.white.withAlpha(138),
+                            color: tokens.textSecondary,
                             fontSize: 11,
                             fontWeight: FontWeight.w600),
                       ),
@@ -272,6 +272,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   }
 
   Widget _heroSearchCard() {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _GlassCard(
       radius: 34,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
@@ -282,7 +283,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
             right: -34,
             top: -42,
             child: Icon(Icons.search_rounded,
-                size: 130, color: Colors.white.withAlpha(7)),
+                size: 130, color: tokens.textPrimary.withAlpha(7)),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,8 +319,8 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                           t('Quick Dictionary', 'Hızlı Sözlük'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white,
+                          style: TextStyle(
+                              color: tokens.textPrimary,
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
                               letterSpacing: -0.6,
@@ -332,7 +333,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              color: Colors.white.withAlpha(146),
+                              color: tokens.textSecondary,
                               fontSize: 11.6,
                               height: 1.3,
                               fontWeight: FontWeight.w700),
@@ -348,11 +349,11 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                 curve: Curves.easeOutCubic,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(27),
-                  color: Colors.white.withAlpha(9),
-                  border: Border.all(color: Colors.white.withAlpha(18)),
+                  color: tokens.inputSurface,
+                  border: Border.all(color: tokens.border),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black.withAlpha(24),
+                        color: tokens.shadow,
                         blurRadius: 18,
                         offset: const Offset(0, 10))
                   ],
@@ -362,18 +363,18 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                   onSubmitted: _search,
                   textInputAction: TextInputAction.search,
                   cursorColor: _blue,
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 15.4,
                       fontWeight: FontWeight.w800),
                   decoration: InputDecoration(
                     hintText:
                         t('Search an English word', 'İngilizce kelime ara'),
                     hintStyle: TextStyle(
-                        color: Colors.white.withAlpha(82),
+                        color: tokens.textMuted,
                         fontWeight: FontWeight.w700),
                     prefixIcon: Icon(Icons.search_rounded,
-                        color: Colors.white.withAlpha(160), size: 22),
+                        color: tokens.textSecondary, size: 22),
                     suffixIcon: Padding(
                       padding: const EdgeInsets.all(7),
                       child: _TapScale(
@@ -412,6 +413,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
 
   Widget _smartSuggestionsCard(DictionaryEntry? entry) {
     final suggestions = _suggestionsFor(entry);
+    final tokens = SpeakeryThemeTokens.of(context);
 
     return _GlassCard(
       radius: 30,
@@ -428,8 +430,8 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(t('Smart suggestions', 'Akıllı öneriler'),
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: tokens.textPrimary,
                             fontSize: 15.8,
                             fontWeight: FontWeight.w900)),
                     const SizedBox(height: 3),
@@ -439,7 +441,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: Colors.white.withAlpha(124),
+                          color: tokens.textMuted,
                           fontSize: 11,
                           fontWeight: FontWeight.w700),
                     ),
@@ -454,7 +456,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
               t('Search a word to see better suggestions.',
                   'Daha iyi öneriler için bir kelime ara.'),
               style: TextStyle(
-                  color: Colors.white.withAlpha(128),
+                  color: tokens.textMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w700),
             )
@@ -483,6 +485,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   }
 
   Widget _entryCard(DictionaryEntry entry) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 240),
       switchInCurve: Curves.easeOutCubic,
@@ -507,8 +510,8 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                         entry.word,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: tokens.textPrimary,
                             fontSize: 29,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.9,
@@ -563,6 +566,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   }
 
   Widget _exampleCard(DictionaryEntry entry) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _GlassCard(
       radius: 31,
       padding: const EdgeInsets.all(15),
@@ -577,24 +581,24 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
             padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
-              color: Colors.white.withAlpha(7),
-              border: Border.all(color: Colors.white.withAlpha(11)),
+              color: tokens.inputSurface,
+              border: Border.all(color: tokens.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(entry.exampleEnglish,
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: tokens.textPrimary,
                         fontSize: 15.2,
                         height: 1.48,
                         fontWeight: FontWeight.w800)),
                 const SizedBox(height: 9),
-                Container(height: 1, color: Colors.white.withAlpha(8)),
+                Container(height: 1, color: tokens.border),
                 const SizedBox(height: 9),
                 Text(entry.exampleTurkish,
                     style: TextStyle(
-                        color: Colors.white.withAlpha(136),
+                        color: tokens.textSecondary,
                         fontSize: 12.6,
                         height: 1.4,
                         fontWeight: FontWeight.w600)),
@@ -631,6 +635,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   }
 
   Widget _teacherNote(DictionaryEntry entry) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _GlassCard(
       radius: 29,
       padding: const EdgeInsets.all(14),
@@ -651,14 +656,14 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(t('Teacher note', 'Öğretmen notu'),
-                      style: const TextStyle(
-                          color: Colors.white,
+                      style: TextStyle(
+                          color: tokens.textPrimary,
                           fontSize: 14.6,
                           fontWeight: FontWeight.w900)),
                   const SizedBox(height: 6),
                   Text(entry.teacherNote,
                       style: TextStyle(
-                          color: Colors.white.withAlpha(152),
+                          color: tokens.textSecondary,
                           fontSize: 12.2,
                           height: 1.42,
                           fontWeight: FontWeight.w700)),
@@ -703,16 +708,17 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   }
 
   Widget _sectionTitle(IconData icon, String title) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Row(
       children: [
-        Icon(icon, color: Colors.white.withAlpha(220), size: 18),
+        Icon(icon, color: tokens.textPrimary, size: 18),
         const SizedBox(width: 8),
         Expanded(
           child: Text(title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: tokens.textPrimary,
                   fontSize: 15.2,
                   fontWeight: FontWeight.w900)),
         ),
@@ -721,18 +727,19 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   }
 
   void _showMiniSnack(String message) {
+    final tokens = SpeakeryThemeTokens.of(context);
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
-        backgroundColor: _panel,
+        backgroundColor: tokens.elevatedSurface,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(18)),
         ),
         content: Text(message,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w800)),
+            style: TextStyle(
+                color: tokens.textPrimary, fontWeight: FontWeight.w800)),
       ),
     );
   }
@@ -743,30 +750,28 @@ class _CalmLiquidBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Stack(
+    final tokens = SpeakeryThemeTokens.of(context);
+    return Stack(
       children: [
         DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF07111F), Color(0xFF050712), Color(0xFF040511)],
-            ),
-          ),
-          child: SizedBox.expand(),
+          decoration: BoxDecoration(gradient: tokens.pageGradient),
+          child: const SizedBox.expand(),
         ),
         Positioned(
             top: -150,
             right: -120,
-            child: _BackgroundGlow(color: _pink, size: 310, alpha: 38)),
+            child: _BackgroundGlow(
+                color: _pink, size: 310, alpha: tokens.isLight ? 22 : 38)),
         Positioned(
             top: 220,
             left: -165,
-            child: _BackgroundGlow(color: _blue, size: 310, alpha: 34)),
+            child: _BackgroundGlow(
+                color: _blue, size: 310, alpha: tokens.isLight ? 20 : 34)),
         Positioned(
             bottom: -150,
             right: -150,
-            child: _BackgroundGlow(color: _purple, size: 320, alpha: 32)),
+            child: _BackgroundGlow(
+                color: _purple, size: 320, alpha: tokens.isLight ? 18 : 32)),
         Positioned.fill(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -774,9 +779,9 @@ class _CalmLiquidBackground extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0x0806B6D4),
-                  Color(0x00050712),
-                  Color(0x22040511)
+                  _blue.withAlpha(tokens.isLight ? 5 : 8),
+                  tokens.background.withAlpha(0),
+                  tokens.backgroundEnd.withAlpha(tokens.isLight ? 14 : 34),
                 ],
               ),
             ),
@@ -801,12 +806,13 @@ class _MeaningBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(13, 12, 13, 13),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        color: Colors.white.withAlpha(7),
+        color: tokens.inputSurface,
         border: Border.all(color: color.withAlpha(24)),
       ),
       child: Row(
@@ -829,13 +835,13 @@ class _MeaningBlock extends StatelessWidget {
               children: [
                 Text(title,
                     style: TextStyle(
-                        color: Colors.white.withAlpha(122),
+                        color: tokens.textMuted,
                         fontSize: 10.7,
                         fontWeight: FontWeight.w800)),
                 const SizedBox(height: 5),
                 Text(value,
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: tokens.textPrimary,
                         fontSize: 13.7,
                         height: 1.36,
                         fontWeight: FontWeight.w800)),
@@ -906,7 +912,7 @@ class _SmallPill extends StatelessWidget {
           const SizedBox(width: 5),
           Text(label,
               style: TextStyle(
-                  color: Colors.white.withAlpha(210),
+                  color: SpeakeryThemeTokens.of(context).textPrimary,
                   fontSize: 10.4,
                   fontWeight: FontWeight.w900)),
         ],
@@ -929,6 +935,7 @@ class _WordChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _TapScale(
       onTap: onTap,
       child: AnimatedContainer(
@@ -937,7 +944,7 @@ class _WordChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
-          color: Colors.white.withAlpha(7),
+          color: tokens.inputSurface,
           border: Border.all(color: color.withAlpha(28)),
         ),
         child: Row(
@@ -947,7 +954,7 @@ class _WordChip extends StatelessWidget {
             const SizedBox(width: 6),
             Text(label,
                 style: TextStyle(
-                    color: Colors.white.withAlpha(214),
+                    color: tokens.textPrimary,
                     fontSize: 11.1,
                     fontWeight: FontWeight.w800)),
           ],
@@ -973,6 +980,7 @@ class _ActionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _TapScale(
       onTap: onTap,
       child: AnimatedContainer(
@@ -985,21 +993,21 @@ class _ActionPill extends StatelessWidget {
               ? LinearGradient(
                   colors: [color.withAlpha(42), color.withAlpha(18)])
               : null,
-          color: active ? null : Colors.white.withAlpha(7),
+          color: active ? null : tokens.inputSurface,
           border: Border.all(
-              color: active ? color.withAlpha(46) : Colors.white.withAlpha(13)),
+              color: active ? color.withAlpha(46) : tokens.border),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon,
-                color: active ? color : Colors.white.withAlpha(190), size: 16),
+                color: active ? color : tokens.textSecondary, size: 16),
             const SizedBox(width: 7),
             Flexible(
                 child: Text(label,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: tokens.textPrimary,
                         fontSize: 11.8,
                         fontWeight: FontWeight.w900))),
           ],
@@ -1019,6 +1027,7 @@ class _IconButtonCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _TapScale(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1029,12 +1038,12 @@ class _IconButtonCircle extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: active ? _pink.withAlpha(24) : Colors.white.withAlpha(8),
+          color: active ? _pink.withAlpha(24) : tokens.inputSurface,
           border: Border.all(
-              color: active ? _pink.withAlpha(46) : Colors.white.withAlpha(14)),
+              color: active ? _pink.withAlpha(46) : tokens.border),
         ),
         child: Icon(icon,
-            color: active ? _pink : Colors.white.withAlpha(220), size: 20),
+            color: active ? _pink : tokens.textPrimary, size: 20),
       ),
     );
   }
@@ -1077,36 +1086,11 @@ class _GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: strong
-                  ? [
-                      Colors.white.withAlpha(13),
-                      _blue.withAlpha(7),
-                      _pink.withAlpha(6)
-                    ]
-                  : [Colors.white.withAlpha(9), Colors.white.withAlpha(5)],
-            ),
-            borderRadius: BorderRadius.circular(radius),
-            border: Border.all(color: Colors.white.withAlpha(strong ? 17 : 13)),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withAlpha(24),
-                  blurRadius: 22,
-                  offset: const Offset(0, 12))
-            ],
-          ),
-          child: child,
-        ),
-      ),
+    return IosLiquidGlassSurface(
+      radius: radius,
+      strong: strong,
+      padding: padding,
+      child: child,
     );
   }
 }

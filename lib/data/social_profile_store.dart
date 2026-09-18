@@ -5,13 +5,71 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// How someone in a connection list is related to the signed-in learner.
+enum SocialConnectionKind { friend, incomingRequest, outgoingRequest }
+
+/// A public profile as it stands right now, looked up by uid.
+class SocialProfileSummary {
+  final String uid;
+  final String name;
+  final String username;
+
+  const SocialProfileSummary({
+    required this.uid,
+    required this.name,
+    required this.username,
+  });
+}
+
+/// One row in the followers / following / friends lists.
+///
+/// Identity is the uid. Usernames change — a friend who renames themselves
+/// would otherwise drop out of everyone's list — so the handle shown here is
+/// whatever the lookup reports today, not whatever was stored at the time.
+class SocialConnection {
+  final String uid;
+  final String fallbackUsername;
+  final String fallbackName;
+  final SocialConnectionKind kind;
+
+  const SocialConnection({
+    required this.uid,
+    required this.fallbackUsername,
+    required this.fallbackName,
+    required this.kind,
+  });
+
+  SocialProfileSummary? _summary(Map<String, SocialProfileSummary> resolved) =>
+      uid.isEmpty ? null : resolved[uid];
+
+  String nameOr(Map<String, SocialProfileSummary> resolved) {
+    final remote = _summary(resolved)?.name.trim() ?? '';
+    if (remote.isNotEmpty) return remote;
+    if (fallbackName.trim().isNotEmpty) return fallbackName.trim();
+    return fallbackUsername.isEmpty ? 'Speakery Student' : fallbackUsername;
+  }
+
+  String handleOr(Map<String, SocialProfileSummary> resolved) {
+    final remote = _summary(resolved)?.username.trim() ?? '';
+    if (remote.isNotEmpty) return '@$remote';
+    return fallbackUsername.isEmpty ? '' : '@$fallbackUsername';
+  }
+
+  String initialOr(Map<String, SocialProfileSummary> resolved) {
+    final name = nameOr(resolved);
+    return name.isEmpty ? 'S' : name.substring(0, 1).toUpperCase();
+  }
+}
+
 class SocialProfileStore extends ChangeNotifier {
   SocialProfileStore._();
 
   static final SocialProfileStore instance = SocialProfileStore._();
 
   static const String _profileKey = 'speakery_social_profile';
-  static const String _friendsKey = 'speakery_social_friends';
+  // Bumped when friendships moved from usernames to uids: the old cache
+  // holds handles, which are no longer identities.
+  static const String _friendsKey = 'speakery_social_friend_uids';
   static const String _incomingKey = 'speakery_social_incoming_requests';
   static const String _outgoingKey = 'speakery_social_outgoing_requests';
 
@@ -25,6 +83,7 @@ class SocialProfileStore extends ChangeNotifier {
   String username = 'speakerylearner';
   String bio = 'Building fluency one lesson at a time.';
 
+  /// Friend uids. Usernames are mutable, so they cannot be the identity.
   final Set<String> friends = <String>{};
   final List<FriendRequest> incomingRequests = <FriendRequest>[];
   final List<FriendRequest> outgoingRequests = <FriendRequest>[];
@@ -35,6 +94,71 @@ class SocialProfileStore extends ChangeNotifier {
   int get friendsCount => friends.length;
   int get followersCount => friends.length + incomingRequests.length;
   int get followingCount => friends.length + outgoingRequests.length;
+
+  List<SocialConnection> get friendConnections => friends
+      .map((uid) => SocialConnection(
+            uid: uid,
+            fallbackUsername: '',
+            fallbackName: '',
+            kind: SocialConnectionKind.friend,
+          ))
+      .toList(growable: false);
+
+  /// Friends plus anyone whose request is still waiting on you — the same
+  /// people [followersCount] counts.
+  List<SocialConnection> get followerConnections => [
+        ...friendConnections,
+        ...incomingRequests.map((request) => SocialConnection(
+              uid: request.userId ?? '',
+              fallbackUsername: request.username,
+              fallbackName: request.displayName,
+              kind: SocialConnectionKind.incomingRequest,
+            )),
+      ];
+
+  /// Friends plus anyone you have asked and not heard back from.
+  List<SocialConnection> get followingConnections => [
+        ...friendConnections,
+        ...outgoingRequests.map((request) => SocialConnection(
+              uid: request.userId ?? '',
+              fallbackUsername: request.username,
+              fallbackName: request.displayName,
+              kind: SocialConnectionKind.outgoingRequest,
+            )),
+      ];
+
+  /// Reads the current public profile of each uid.
+  ///
+  /// The lookup is by document id, so a learner who renames themselves still
+  /// resolves — which is the whole reason friendships are keyed on uid.
+  /// Failures are swallowed: the caller falls back to whatever it already has.
+  Future<Map<String, SocialProfileSummary>> profilesFor(
+    Iterable<String> uids,
+  ) async {
+    final wanted =
+        uids.where((value) => value.trim().isNotEmpty).toSet().toList();
+    final resolved = <String, SocialProfileSummary>{};
+
+    await Future.wait(wanted.map((uid) async {
+      try {
+        final doc =
+            await _firestore.collection('publicProfiles').doc(uid).get();
+        final data = doc.data();
+        if (data == null) return;
+        resolved[uid] = SocialProfileSummary(
+          uid: uid,
+          name: (data['name'] as String?) ?? '',
+          username: (data['usernameLower'] as String?) ??
+              (data['username'] as String?) ??
+              '',
+        );
+      } catch (error) {
+        debugPrint('Profile lookup failed for $uid: $error');
+      }
+    }));
+
+    return resolved;
+  }
 
   Future<void> load() async {
     if (_loaded || _loading) return;
@@ -55,6 +179,29 @@ class SocialProfileStore extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  /// Wipes everything tied to the signed-in learner.
+  ///
+  /// The profile is cached locally so it survives a restart; without this the
+  /// next account to sign in on the device would inherit the previous one's
+  /// name, handle and friend list.
+  Future<void> clearForSignOut() async {
+    displayName = 'Speakery Learner';
+    username = 'speakerylearner';
+    bio = 'Building fluency one lesson at a time.';
+    friends.clear();
+    incomingRequests.clear();
+    outgoingRequests.clear();
+    _loaded = false;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_profileKey);
+    await prefs.remove(_friendsKey);
+    await prefs.remove(_incomingKey);
+    await prefs.remove(_outgoingKey);
+
+    notifyListeners();
   }
 
   Future<void> updateProfile({
@@ -90,9 +237,6 @@ class SocialProfileStore extends ChangeNotifier {
     if (targetUsername == username) {
       throw const SocialProfileException('You cannot add yourself.');
     }
-    if (friends.contains(targetUsername)) {
-      throw const SocialProfileException('This student is already a friend.');
-    }
     if (outgoingRequests.any((request) => request.username == targetUsername)) {
       throw const SocialProfileException('Request already sent.');
     }
@@ -112,6 +256,9 @@ class SocialProfileStore extends ChangeNotifier {
       if (target == null || target.id == user.uid) {
         throw const SocialProfileException(
             'No student found with that username.');
+      }
+      if (friends.contains(target.id)) {
+        throw const SocialProfileException('This student is already a friend.');
       }
 
       final requestId = '${user.uid}_${target.id}';
@@ -143,17 +290,23 @@ class SocialProfileStore extends ChangeNotifier {
 
   Future<void> acceptRequest(FriendRequest request) async {
     incomingRequests.removeWhere((item) => item.id == request.id);
-    friends.add(request.username);
+
+    final friendUid = request.userId;
+    // A request made while signed out carries no uid, so there is nothing
+    // stable to record; it becomes a friendship once it syncs.
+    if (friendUid != null && friendUid.isNotEmpty) {
+      friends.add(friendUid);
+    }
 
     final user = _auth.currentUser;
-    if (request.isRemote && user != null) {
+    if (request.isRemote && user != null && friendUid != null) {
       await _firestore.collection('friendRequests').doc(request.id).set({
         'status': 'accepted',
         'respondedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
       await _firestore.collection('users').doc(user.uid).set({
-        'friends': FieldValue.arrayUnion([request.username]),
+        'friends': FieldValue.arrayUnion([friendUid]),
       }, SetOptions(merge: true));
     }
 
@@ -275,14 +428,47 @@ class SocialProfileStore extends ChangeNotifier {
       friends
         ..clear()
         ..addAll((remoteData['friends'] as List<dynamic>? ?? const <dynamic>[])
-            .map((value) => normalizeUsername(value.toString()))
+            .map((value) => value.toString().trim())
             .where((value) => value.isNotEmpty));
     }
 
     await _saveRemoteProfile();
     await _loadRemoteRequests(user.uid);
+    await _reconcileFriends(user.uid);
     await _saveLocal();
     notifyListeners();
+  }
+
+  /// Drops friend entries that point at no profile and writes the cleaned list
+  /// back.
+  ///
+  /// Friendships used to be stored as usernames. Those entries survive in old
+  /// documents and, read as uids, resolve to nobody — so each account repairs
+  /// its own list the first time it signs in after the change. No admin
+  /// credentials, no migration window.
+  Future<void> _reconcileFriends(String uid) async {
+    if (friends.isEmpty) return;
+
+    final profiles = await profilesFor(friends);
+
+    // An empty result means the lookup itself failed — offline, rules, a bad
+    // connection. Wiping the list on that would be destructive, so leave it.
+    if (profiles.isEmpty) return;
+
+    final valid = friends.where(profiles.containsKey).toSet();
+    if (valid.length == friends.length) return;
+
+    debugPrint(
+      'Dropping ${friends.length - valid.length} stale friend entry/entries.',
+    );
+    friends
+      ..clear()
+      ..addAll(valid);
+
+    await _firestore.collection('users').doc(uid).set(
+      {'friends': friends.toList()},
+      SetOptions(merge: true),
+    );
   }
 
   Future<void> _saveRemoteProfile() async {
@@ -329,10 +515,8 @@ class SocialProfileStore extends ChangeNotifier {
           direction: FriendRequestDirection.incoming,
         ));
       } else if (data['status'] == 'accepted') {
-        final friendUsername = normalizeUsername(
-          (data['fromUsername'] as String?) ?? '',
-        );
-        if (friendUsername.isNotEmpty) friends.add(friendUsername);
+        final friendUid = (data['fromUid'] as String?)?.trim() ?? '';
+        if (friendUid.isNotEmpty) friends.add(friendUid);
       }
     }
 
@@ -345,10 +529,8 @@ class SocialProfileStore extends ChangeNotifier {
           direction: FriendRequestDirection.outgoing,
         ));
       } else if (data['status'] == 'accepted') {
-        final friendUsername = normalizeUsername(
-          (data['toUsername'] as String?) ?? '',
-        );
-        if (friendUsername.isNotEmpty) friends.add(friendUsername);
+        final friendUid = (data['toUid'] as String?)?.trim() ?? '';
+        if (friendUid.isNotEmpty) friends.add(friendUid);
       }
     }
   }

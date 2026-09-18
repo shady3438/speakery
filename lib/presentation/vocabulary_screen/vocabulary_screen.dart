@@ -27,6 +27,7 @@ class VocabularyChallengeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final cleanedAll = allVocabularyItems
         .where(
           (item) =>
@@ -81,12 +82,12 @@ class VocabularyChallengeScreen extends StatelessWidget {
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withAlpha(12),
-                          border: Border.all(color: Colors.white.withAlpha(18)),
+                          color: tokens.inputSurface,
+                          border: Border.all(color: tokens.border),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white,
+                          color: tokens.textPrimary,
                           size: 18,
                         ),
                       ),
@@ -98,8 +99,8 @@ class VocabularyChallengeScreen extends StatelessWidget {
                         children: [
                           Text(
                             t('Arena', 'Arena'),
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: tokens.textPrimary,
                               fontSize: 25,
                               fontWeight: FontWeight.w900,
                             ),
@@ -108,7 +109,7 @@ class VocabularyChallengeScreen extends StatelessWidget {
                             t('Choose a game type first.',
                                 'Önce oyun türünü seç.'),
                             style: TextStyle(
-                              color: Colors.white.withAlpha(178),
+                              color: tokens.textSecondary,
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
                             ),
@@ -1294,30 +1295,14 @@ class _CleanLearnIntro extends StatelessWidget {
     final progress =
         totalWords == 0 ? 0.0 : (progressWords / totalWords).clamp(0.0, 1.0);
 
+    final tokens = SpeakeryThemeTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: Container(
-        width: double.infinity,
+      child: IosLiquidGlassSurface(
+        radius: 24,
+        strong: true,
+        accent: style.start,
         padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              style.start.withAlpha(35),
-              const Color(0xFF111827).withAlpha(235),
-              style.end.withAlpha(24),
-            ],
-          ),
-          border: Border.all(color: Colors.white.withAlpha(16)),
-          boxShadow: [
-            BoxShadow(
-                color: style.end.withAlpha(20),
-                blurRadius: 24,
-                offset: const Offset(0, 12)),
-          ],
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1348,8 +1333,8 @@ class _CleanLearnIntro extends StatelessWidget {
                         t('Learn Path', 'Öğrenme Alanı'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: tokens.textPrimary,
                             fontSize: 15.2,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.2),
@@ -1361,7 +1346,7 @@ class _CleanLearnIntro extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            color: Colors.white.withAlpha(160),
+                            color: tokens.textSecondary,
                             fontSize: 9.9,
                             fontWeight: FontWeight.w700,
                             height: 1.15),
@@ -1377,7 +1362,7 @@ class _CleanLearnIntro extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 3.5,
-                backgroundColor: Colors.white.withAlpha(12),
+                backgroundColor: tokens.border,
                 valueColor:
                     AlwaysStoppedAnimation<Color>(style.start.withAlpha(150)),
               ),
@@ -1390,18 +1375,6 @@ class _CleanLearnIntro extends StatelessWidget {
                   label:
                       '$progressWords/$totalWords ${t('progress', 'ilerleme')}',
                   color: style.start,
-                ),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: Colors.white.withAlpha(132),
-                        fontSize: 9.4,
-                        fontWeight: FontWeight.w700),
-                  ),
                 ),
               ],
             ),
@@ -1512,6 +1485,7 @@ class _LearnToolsCallout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _PressableScale(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1526,11 +1500,10 @@ class _LearnToolsCallout extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: toolsOpen
                 ? [color.withAlpha(72), endColor.withAlpha(54)]
-                : [Colors.white.withAlpha(10), color.withAlpha(14)],
+                : [tokens.inputSurface, color.withAlpha(14)],
           ),
           border: Border.all(
-              color:
-                  toolsOpen ? color.withAlpha(70) : Colors.white.withAlpha(15)),
+              color: toolsOpen ? color.withAlpha(70) : tokens.border),
           boxShadow: toolsOpen
               ? [
                   BoxShadow(
@@ -1561,15 +1534,15 @@ class _LearnToolsCallout extends StatelessWidget {
                     : t('Search & filters', 'Arama ve filtreler'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 12.4,
                     fontWeight: FontWeight.w900,
                     height: 1.0),
               ),
             ),
             Icon(Icons.keyboard_arrow_down_rounded,
-                color: Colors.white.withAlpha(190), size: 19),
+                color: tokens.textSecondary, size: 19),
           ],
         ),
       ),
@@ -1596,6 +1569,7 @@ class _LearnPathButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final cleanSubtitle = subtitle.trim();
     final fullLabel = cleanSubtitle.isEmpty
         ? label
@@ -1614,10 +1588,9 @@ class _LearnPathButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
-          color: selected ? color.withAlpha(30) : Colors.white.withAlpha(7),
+          color: selected ? color.withAlpha(30) : tokens.inputSurface,
           border: Border.all(
-              color:
-                  selected ? color.withAlpha(82) : Colors.white.withAlpha(13)),
+              color: selected ? color.withAlpha(82) : tokens.border),
           boxShadow: selected
               ? [
                   BoxShadow(
@@ -1631,16 +1604,15 @@ class _LearnPathButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon,
-                color: selected ? color : Colors.white.withAlpha(165),
-                size: 14),
+                color: selected ? color : tokens.textSecondary, size: 14),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
                 fullLabel,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 10.6,
                     fontWeight: FontWeight.w900,
                     height: 1.0),
@@ -4301,6 +4273,7 @@ class _VocabularyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final levelStyle = _styleForLevel(item.level);
+    final tokens = SpeakeryThemeTokens.of(context);
 
     return AnimatedBuilder(
       animation: AppProgress.instance,
@@ -4319,9 +4292,11 @@ class _VocabularyCard extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  levelStyle.start.withAlpha(24),
-                  levelStyle.end.withAlpha(12),
-                  Colors.white.withAlpha(10),
+                  levelStyle.start.withAlpha(tokens.isLight ? 30 : 24),
+                  levelStyle.end.withAlpha(tokens.isLight ? 16 : 12),
+                  tokens.isLight
+                      ? Colors.white.withAlpha(210)
+                      : Colors.white.withAlpha(10),
                 ],
               ),
               border: Border.all(
@@ -4383,8 +4358,8 @@ class _VocabularyCard extends StatelessWidget {
                                   item.word,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      color: Colors.white,
+                                  style: TextStyle(
+                                      color: tokens.textPrimary,
                                       fontSize: 22,
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: -0.3),
@@ -4451,11 +4426,11 @@ class _VocabularyCard extends StatelessWidget {
                                 shape: BoxShape.circle,
                                 color: saved
                                     ? const Color(0xFFFFD166).withAlpha(22)
-                                    : Colors.white.withAlpha(8),
+                                    : tokens.inputSurface,
                                 border: Border.all(
                                     color: saved
                                         ? const Color(0xFFFFD166).withAlpha(62)
-                                        : Colors.white.withAlpha(16)),
+                                        : tokens.border),
                               ),
                               child: Icon(
                                 saved
@@ -4463,7 +4438,7 @@ class _VocabularyCard extends StatelessWidget {
                                     : Icons.bookmark_add_outlined,
                                 color: saved
                                     ? const Color(0xFFFFD166)
-                                    : Colors.white.withAlpha(180),
+                                    : tokens.textSecondary,
                                 size: 20,
                               ),
                             ),
@@ -4476,7 +4451,7 @@ class _VocabularyCard extends StatelessWidget {
                         padding: const EdgeInsets.all(13),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          color: Colors.black.withAlpha(28),
+                          color: tokens.inputSurface,
                           border:
                               Border.all(color: levelStyle.end.withAlpha(28)),
                         ),
@@ -4493,8 +4468,8 @@ class _VocabularyCard extends StatelessWidget {
                                     item.meaningTr,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        color: Colors.white,
+                                    style: TextStyle(
+                                        color: tokens.textPrimary,
                                         fontSize: 15,
                                         fontWeight: FontWeight.w800),
                                   ),
@@ -4512,7 +4487,7 @@ class _VocabularyCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                           gradient: LinearGradient(
                             colors: [
-                              Colors.black.withAlpha(26),
+                              tokens.inputSurface,
                               levelStyle.start.withAlpha(12),
                             ],
                           ),
@@ -4541,8 +4516,8 @@ class _VocabularyCard extends StatelessWidget {
                               item.exampleEn,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: Colors.white,
+                              style: TextStyle(
+                                  color: tokens.textPrimary,
                                   fontSize: 14,
                                   height: 1.35,
                                   fontWeight: FontWeight.w700),
@@ -4552,8 +4527,8 @@ class _VocabularyCard extends StatelessWidget {
                               item.exampleTr,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: Color(0xFFBFC3D9),
+                              style: TextStyle(
+                                  color: tokens.textSecondary,
                                   fontSize: 12.5,
                                   height: 1.25,
                                   fontWeight: FontWeight.w500),
@@ -4568,7 +4543,7 @@ class _VocabularyCard extends StatelessWidget {
                               'Öğretmen notları için karta dokun'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Colors.white.withAlpha(96),
+                            color: tokens.textMuted,
                             fontSize: 9.8,
                             height: 1.0,
                             fontWeight: FontWeight.w600,
@@ -6270,22 +6245,11 @@ class _ScrambleRewardSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    final tokens = SpeakeryThemeTokens.of(context);
+    return IosLiquidGlassSurface(
+      radius: 22,
+      accent: const Color(0xFFFFB020),
       padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFFFB020).withAlpha(22),
-            Colors.white.withAlpha(7),
-            const Color(0xFF22C55E).withAlpha(15),
-          ],
-        ),
-        border: Border.all(color: Colors.white.withAlpha(12)),
-      ),
       child: Row(
         children: [
           Container(
@@ -6314,8 +6278,8 @@ class _ScrambleRewardSummaryCard extends StatelessWidget {
                   t('Progress saved', 'İlerleme kaydedildi'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 12.8,
                       fontWeight: FontWeight.w900),
                 ),
@@ -6329,7 +6293,7 @@ class _ScrambleRewardSummaryCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      color: Colors.white.withAlpha(145),
+                      color: tokens.textSecondary,
                       fontSize: 10.3,
                       height: 1.2,
                       fontWeight: FontWeight.w700),
@@ -6352,8 +6316,8 @@ class _ScrambleRewardSummaryCard extends StatelessWidget {
                 ),
                 child: Text(
                   '+$xp XP',
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 10.3,
                       fontWeight: FontWeight.w900),
                 ),
@@ -6362,7 +6326,7 @@ class _ScrambleRewardSummaryCard extends StatelessWidget {
               Text(
                 '+$mastered ${t('words', 'kelime')}',
                 style: TextStyle(
-                    color: Colors.white.withAlpha(160),
+                    color: tokens.textSecondary,
                     fontSize: 9.4,
                     fontWeight: FontWeight.w800),
               ),
@@ -6391,6 +6355,7 @@ class _CompactModeIntro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Row(
       children: [
         Container(
@@ -6417,8 +6382,8 @@ class _CompactModeIntro extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 22.0,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.35),
@@ -6429,7 +6394,7 @@ class _CompactModeIntro extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    color: Colors.white.withAlpha(158),
+                    color: tokens.textSecondary,
                     fontSize: 11.2,
                     height: 1.18,
                     fontWeight: FontWeight.w700),
@@ -6753,8 +6718,8 @@ class _ScrambleTeamScoreCard extends StatelessWidget {
             Text(name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: SpeakeryThemeTokens.of(context).textPrimary,
                     fontSize: 11.5,
                     fontWeight: FontWeight.w900)),
             const SizedBox(height: 4),
@@ -6939,6 +6904,7 @@ class _ScrambleFeedbackCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.96, end: 1.0),
       duration: const Duration(milliseconds: 230),
@@ -6968,7 +6934,7 @@ class _ScrambleFeedbackCard extends StatelessWidget {
                         color == const Color(0xFFFF8A00)
                     ? Icons.check_circle_rounded
                     : Icons.info_rounded,
-                color: Colors.white,
+                color: color,
                 size: 19),
             const SizedBox(width: 9),
             Expanded(
@@ -6976,8 +6942,8 @@ class _ScrambleFeedbackCard extends StatelessWidget {
                 label,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 11.5,
                     height: 1.22,
                     fontWeight: FontWeight.w800),
@@ -7023,15 +6989,16 @@ class _ScrambleThinkingCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 19),
+            const Icon(Icons.smart_toy_rounded,
+                color: Color(0xFF00C2FF), size: 19),
             const SizedBox(width: 9),
             Expanded(
               child: Text(
                 label,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: SpeakeryThemeTokens.of(context).textPrimary,
                     fontSize: 11.5,
                     height: 1.22,
                     fontWeight: FontWeight.w800),
@@ -7043,7 +7010,7 @@ class _ScrambleThinkingCard extends StatelessWidget {
               height: 15,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00C2FF)),
               ),
             ),
           ],
@@ -8187,6 +8154,7 @@ class _TabooGameTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
       child: Row(
@@ -8198,11 +8166,11 @@ class _TabooGameTopBar extends StatelessWidget {
               height: 42,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withAlpha(14),
-                border: Border.all(color: Colors.white.withAlpha(22)),
+                color: tokens.inputSurface,
+                border: Border.all(color: tokens.border),
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white, size: 17),
+              child: Icon(Icons.arrow_back_ios_new_rounded,
+                  color: tokens.textPrimary, size: 17),
             ),
           ),
           const SizedBox(width: 12),
@@ -8212,8 +8180,8 @@ class _TabooGameTopBar extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.45),
@@ -8224,7 +8192,7 @@ class _TabooGameTopBar extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      color: Colors.white.withAlpha(165),
+                      color: tokens.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w800),
                 ),
@@ -8256,6 +8224,7 @@ class _TabooScoreBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Row(
       children: [
         Expanded(
@@ -8272,11 +8241,11 @@ class _TabooScoreBoard extends StatelessWidget {
           height: 58,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.black.withAlpha(55),
-            border: Border.all(color: Colors.white.withAlpha(18)),
+            color: tokens.elevatedSurface,
+            border: Border.all(color: tokens.border),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withAlpha(45),
+                  color: tokens.shadow,
                   blurRadius: 16,
                   offset: const Offset(0, 8)),
             ],
@@ -8286,13 +8255,13 @@ class _TabooScoreBoard extends StatelessWidget {
             children: [
               Text('Round',
                   style: TextStyle(
-                      color: Colors.white.withAlpha(150),
+                      color: tokens.textSecondary,
                       fontSize: 9,
                       fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
               Text('$round',
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.w900)),
             ],
@@ -8333,33 +8302,14 @@ class _TabooHeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const dangerColor = Color(0xFFFF3B5C);
+    final tokens = SpeakeryThemeTokens.of(context);
 
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 36,
+      strong: true,
+      accent: urgent ? dangerColor : activeColor,
+      borderColor: urgent ? dangerColor.withAlpha(105) : null,
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(36),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            activeColor.withAlpha(58),
-            const Color(0xFF111827).withAlpha(235),
-            const Color(0xFF26143A).withAlpha(225),
-          ],
-        ),
-        border: Border.all(
-            color: urgent
-                ? dangerColor.withAlpha(105)
-                : activeColor.withAlpha(78)),
-        boxShadow: [
-          BoxShadow(
-            color: (urgent ? dangerColor : activeColor).withAlpha(35),
-            blurRadius: 28,
-            offset: const Offset(0, 16),
-          ),
-        ],
-      ),
       child: Column(
         children: [
           Row(
@@ -8371,7 +8321,7 @@ class _TabooHeroCard extends StatelessWidget {
                   label: card.category.isEmpty
                       ? t('Vocabulary', 'Kelime')
                       : card.category,
-                  color: Colors.white.withAlpha(170),
+                  color: tokens.textSecondary,
                 ),
               ),
             ],
@@ -8382,16 +8332,16 @@ class _TabooHeroCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 22),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(30),
-              color: Colors.black.withAlpha(38),
-              border: Border.all(color: Colors.white.withAlpha(12)),
+              color: tokens.inputSurface,
+              border: Border.all(color: tokens.border),
             ),
             child: Column(
               children: [
                 Text(
                   card.word,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 44,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -1.0,
@@ -8403,7 +8353,7 @@ class _TabooHeroCard extends StatelessWidget {
                   card.meaning,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: Colors.white.withAlpha(175),
+                      color: tokens.textSecondary,
                       fontSize: 14,
                       fontWeight: FontWeight.w800),
                 ),
@@ -8452,7 +8402,7 @@ class _TabooHeroCard extends StatelessWidget {
                           'Yasak kelimeleri söylemeden anlat.'),
                       key: const ValueKey('hint'),
                       style: TextStyle(
-                          color: Colors.white.withAlpha(125),
+                          color: tokens.textMuted,
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700),
                     )
@@ -8603,24 +8553,11 @@ class _TabooGlassPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 34,
+      strong: true,
+      accent: const Color(0xFFEC4899),
       padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(34),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF171726), Color(0xFF2B1F44), Color(0xFF111827)],
-        ),
-        border: Border.all(color: Colors.white.withAlpha(16)),
-        boxShadow: [
-          BoxShadow(
-              color: const Color(0xFFEC4899).withAlpha(14),
-              blurRadius: 14,
-              offset: const Offset(0, 8)),
-        ],
-      ),
       child: child,
     );
   }
@@ -8857,18 +8794,21 @@ class _TeamNameField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return TextField(
       controller: controller,
       onChanged: onChanged,
       maxLength: 14,
-      style: const TextStyle(
-          color: Colors.white, fontSize: 12.6, fontWeight: FontWeight.w900),
+      style: TextStyle(
+          color: tokens.textPrimary,
+          fontSize: 12.6,
+          fontWeight: FontWeight.w900),
       cursorColor: color,
       decoration: InputDecoration(
         counterText: '',
         labelText: label,
         labelStyle: TextStyle(
-            color: Colors.white.withAlpha(140),
+            color: tokens.textSecondary,
             fontSize: 10.8,
             fontWeight: FontWeight.w700),
         prefixIcon: Icon(Icons.groups_rounded, color: color, size: 18),
@@ -8899,6 +8839,7 @@ class _TeamPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -8911,8 +8852,8 @@ class _TeamPreviewCard extends StatelessWidget {
           Icon(Icons.groups_rounded, color: color, size: 22),
           const SizedBox(height: 8),
           Text(name,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: tokens.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.w900)),
           const SizedBox(height: 4),
@@ -8940,6 +8881,7 @@ class _TeamScoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 260),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
@@ -8960,7 +8902,7 @@ class _TeamScoreCard extends StatelessWidget {
         children: [
           Text(name,
               style: TextStyle(
-                  color: Colors.white.withAlpha(active ? 255 : 170),
+                  color: active ? tokens.textPrimary : tokens.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w900)),
           const SizedBox(height: 4),
@@ -8988,6 +8930,7 @@ class _TabooTimerBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 260),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -9007,7 +8950,7 @@ class _TabooTimerBar extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 11,
-                backgroundColor: Colors.white.withAlpha(14),
+                backgroundColor: tokens.border,
                 valueColor: AlwaysStoppedAnimation<Color>(color),
               ),
             ),
@@ -9015,8 +8958,10 @@ class _TabooTimerBar extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             '${secondsLeft}s',
-            style: const TextStyle(
-                color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
+            style: TextStyle(
+                color: tokens.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w900),
           ),
         ],
       ),
@@ -9043,8 +8988,10 @@ class _TabooChip extends StatelessWidget {
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-            color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w900),
+        style: TextStyle(
+            color: SpeakeryThemeTokens.of(context).textPrimary,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -9066,8 +9013,10 @@ class _ForbiddenWordPill extends StatelessWidget {
       ),
       child: Text(
         word,
-        style: const TextStyle(
-            color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900),
+        style: TextStyle(
+            color: SpeakeryThemeTokens.of(context).textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -10006,100 +9955,93 @@ class _PremiumArenaModeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return RepaintBoundary(
       child: _PressableScale(
         onTap: onTap,
-        child: Container(
-          width: double.infinity,
+        child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 124),
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
+          child: IosLiquidGlassSurface(
+            radius: 30,
+            strong: true,
+            accent: startColor,
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                startColor.withAlpha(125),
-                const Color(0xFF101426).withAlpha(224),
-                endColor.withAlpha(138),
+                startColor.withAlpha(tokens.isLight ? 60 : 90),
+                endColor.withAlpha(tokens.isLight ? 40 : 64),
               ],
             ),
-            border: Border.all(color: Colors.white.withAlpha(24)),
-            boxShadow: [
-              BoxShadow(
-                color: endColor.withAlpha(22),
-                blurRadius: 18,
-                offset: const Offset(0, 9),
-              ),
-            ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [startColor, endColor],
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [startColor, endColor],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: endColor.withAlpha(36),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: endColor.withAlpha(36),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+                  child: Icon(icon, color: Colors.white, size: 26),
                 ),
-                child: Icon(icon, color: Colors.white, size: 26),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 19.0,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.25,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontSize: 19.0,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.25,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withAlpha(205),
-                        fontSize: 12.0,
-                        height: 1.16,
-                        fontWeight: FontWeight.w800,
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: tokens.textSecondary,
+                          fontSize: 12.0,
+                          height: 1.16,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 9),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 5,
-                      children: chips
-                          .take(3)
-                          .map((chip) => _CleanArenaChip(label: chip))
-                          .toList(),
-                    ),
-                  ],
+                      const SizedBox(height: 9),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 5,
+                        children: chips
+                            .take(3)
+                            .map((chip) => _CleanArenaChip(label: chip))
+                            .toList(),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              _CleanCTA(label: ctaLabel, color: endColor),
-            ],
+                const SizedBox(width: 10),
+                _CleanCTA(label: ctaLabel, color: endColor),
+              ],
+            ),
           ),
         ),
       ),
@@ -10127,101 +10069,94 @@ class _PartyTabooHeroCard extends StatelessWidget {
     const startColor = Color(0xFF8B5CF6);
     const midColor = Color(0xFFEC4899);
     const endColor = Color(0xFFFF8A00);
+    final tokens = SpeakeryThemeTokens.of(context);
 
     return _PressableScale(
       onTap: onTap,
-      child: Container(
-        width: double.infinity,
+      child: SizedBox(
         height: 112,
-        padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(25),
+        child: IosLiquidGlassSurface(
+          radius: 25,
+          strong: true,
+          accent: midColor,
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              startColor.withAlpha(72),
-              const Color(0xFF101426).withAlpha(232),
-              endColor.withAlpha(70),
+              startColor.withAlpha(tokens.isLight ? 46 : 58),
+              endColor.withAlpha(tokens.isLight ? 40 : 52),
             ],
           ),
-          border: Border.all(color: midColor.withAlpha(52)),
-          boxShadow: [
-            BoxShadow(
-              color: midColor.withAlpha(26),
-              blurRadius: 22,
-              offset: const Offset(0, 11),
-            ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [startColor, midColor, endColor],
+          padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [startColor, midColor, endColor],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: midColor.withAlpha(42),
+                      blurRadius: 18,
+                      offset: const Offset(0, 9),
+                    ),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: midColor.withAlpha(42),
-                    blurRadius: 18,
-                    offset: const Offset(0, 9),
-                  ),
-                ],
+                child: const Icon(Icons.groups_2_rounded,
+                    color: Colors.white, size: 25),
               ),
-              child: const Icon(Icons.groups_2_rounded,
-                  color: Colors.white, size: 25),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.2,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: tokens.textPrimary,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withAlpha(176),
-                      fontSize: 9.8,
-                      height: 1.16,
-                      fontWeight: FontWeight.w700,
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: tokens.textSecondary,
+                        fontSize: 9.8,
+                        height: 1.16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: chips
-                        .take(3)
-                        .map((chip) => _CleanArenaChip(label: chip))
-                        .toList(),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: chips
+                          .take(3)
+                          .map((chip) => _CleanArenaChip(label: chip))
+                          .toList(),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            _CleanCTA(label: ctaLabel, color: midColor),
-          ],
+              const SizedBox(width: 10),
+              _CleanCTA(label: ctaLabel, color: midColor),
+            ],
+          ),
         ),
       ),
     );
@@ -10248,100 +10183,93 @@ class _PartyScrambleCard extends StatelessWidget {
     const startColor = Color(0xFF00C2FF);
     const midColor = Color(0xFF8B5CF6);
     const endColor = Color(0xFFEC4899);
+    final tokens = SpeakeryThemeTokens.of(context);
 
     return _PressableScale(
       onTap: onTap,
-      child: Container(
-        width: double.infinity,
+      child: SizedBox(
         height: 112,
-        padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(25),
+        child: IosLiquidGlassSurface(
+          radius: 25,
+          strong: true,
+          accent: midColor,
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              startColor.withAlpha(55),
-              const Color(0xFF101426).withAlpha(234),
-              endColor.withAlpha(64),
+              startColor.withAlpha(tokens.isLight ? 36 : 46),
+              endColor.withAlpha(tokens.isLight ? 34 : 44),
             ],
           ),
-          border: Border.all(color: midColor.withAlpha(48)),
-          boxShadow: [
-            BoxShadow(
-              color: midColor.withAlpha(24),
-              blurRadius: 22,
-              offset: const Offset(0, 11),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [startColor, midColor, endColor],
+          padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [startColor, midColor, endColor],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: midColor.withAlpha(40),
+                      blurRadius: 18,
+                      offset: const Offset(0, 9),
+                    ),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: midColor.withAlpha(40),
-                    blurRadius: 18,
-                    offset: const Offset(0, 9),
-                  ),
-                ],
+                child: const Icon(Icons.extension_rounded,
+                    color: Colors.white, size: 25),
               ),
-              child: const Icon(Icons.extension_rounded,
-                  color: Colors.white, size: 25),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.2,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: tokens.textPrimary,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withAlpha(176),
-                      fontSize: 9.8,
-                      height: 1.16,
-                      fontWeight: FontWeight.w700,
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: tokens.textSecondary,
+                        fontSize: 9.8,
+                        height: 1.16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: chips
-                        .take(3)
-                        .map((chip) => _CleanArenaChip(label: chip))
-                        .toList(),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: chips
+                          .take(3)
+                          .map((chip) => _CleanArenaChip(label: chip))
+                          .toList(),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            _CleanCTA(label: ctaLabel, color: endColor),
-          ],
+              const SizedBox(width: 10),
+              _CleanCTA(label: ctaLabel, color: endColor),
+            ],
+          ),
         ),
       ),
     );
@@ -10363,29 +10291,11 @@ class _LeaderboardModeCard extends StatelessWidget {
       _ArenaLeaderboardEntry(name: 'Sena', xp: 1605, streak: 11),
     ];
 
-    return Container(
-      width: double.infinity,
+    final tokens = SpeakeryThemeTokens.of(context);
+    return IosLiquidGlassSurface(
+      radius: 24,
+      accent: const Color(0xFF8B5CF6),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFFFD166).withAlpha(22),
-            const Color(0xFF101426).withAlpha(232),
-            const Color(0xFF8B5CF6).withAlpha(26),
-          ],
-        ),
-        border: Border.all(color: Colors.white.withAlpha(12)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8B5CF6).withAlpha(12),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -10412,8 +10322,8 @@ class _LeaderboardModeCard extends StatelessWidget {
                       t('Leaderboard', 'Liderlik'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: tokens.textPrimary,
                         fontSize: 14.4,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.2,
@@ -10425,7 +10335,7 @@ class _LeaderboardModeCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withAlpha(145),
+                        color: tokens.textSecondary,
                         fontSize: 10.2,
                         fontWeight: FontWeight.w700,
                         height: 1.18,
@@ -10712,17 +10622,18 @@ class _CleanArenaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        color: Colors.white.withAlpha(10),
-        border: Border.all(color: Colors.white.withAlpha(13)),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: Colors.white.withAlpha(220),
+          color: tokens.textPrimary,
           fontSize: 9.1,
           fontWeight: FontWeight.w800,
         ),
@@ -10834,6 +10745,7 @@ class _ArenaAnswerFeedback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return AnimatedScale(
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutBack,
@@ -10864,7 +10776,7 @@ class _ArenaAnswerFeedback extends StatelessWidget {
               ),
               child: Icon(
                   correct ? Icons.check_rounded : Icons.priority_high_rounded,
-                  color: Colors.white,
+                  color: color,
                   size: 17),
             ),
             const SizedBox(width: 10),
@@ -10873,8 +10785,8 @@ class _ArenaAnswerFeedback extends StatelessWidget {
                 message,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 11.6,
                     height: 1.22,
                     fontWeight: FontWeight.w800),
@@ -10885,13 +10797,13 @@ class _ArenaAnswerFeedback extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
-                color: Colors.black.withAlpha(24),
-                border: Border.all(color: Colors.white.withAlpha(10)),
+                color: tokens.inputSurface,
+                border: Border.all(color: tokens.border),
               ),
               child: Text(
                 correct ? 'x$combo' : '$streak streak',
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 9.5,
                     fontWeight: FontWeight.w900),
               ),
@@ -11608,16 +11520,14 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
   }
 
   Widget _buildEmpty() {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Container(
+        child: IosLiquidGlassSurface(
+          radius: 30,
+          accent: const Color(0xFFFF4FD8),
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            color: Colors.white.withAlpha(14),
-            border: Border.all(color: Colors.white.withAlpha(22)),
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -11628,8 +11538,8 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
                 t('Not enough words for Challenge',
                     'Challenge için yeterli kelime yok'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.w900),
               ),
@@ -11647,6 +11557,7 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
   }
 
   Widget _buildTopBar({String? subtitle}) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
       child: Row(
@@ -11659,11 +11570,11 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
               height: 42,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withAlpha(16),
-                border: Border.all(color: Colors.white.withAlpha(24)),
+                color: tokens.inputSurface,
+                border: Border.all(color: tokens.border),
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white, size: 18),
+              child: Icon(Icons.arrow_back_ios_new_rounded,
+                  color: tokens.textPrimary, size: 18),
             ),
           ),
           const SizedBox(width: 12),
@@ -11671,10 +11582,10 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Challenge',
                   style: TextStyle(
-                      color: Colors.white,
+                      color: tokens.textPrimary,
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.4),
@@ -11686,7 +11597,7 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: Colors.white.withAlpha(178),
+                        color: tokens.textSecondary,
                         fontSize: 11.4,
                         fontWeight: FontWeight.w800),
                   ),
@@ -11743,7 +11654,7 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
                     t('Choose a mode and start your run.',
                         'Modunu seç ve tura başla.'),
                     style: TextStyle(
-                      color: Colors.white.withAlpha(178),
+                      color: SpeakeryThemeTokens.of(context).textSecondary,
                       fontSize: 12.2,
                       fontWeight: FontWeight.w800,
                     ),
@@ -11963,19 +11874,17 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
   Widget _buildQuestion(double progress) {
     final question = questions[currentIndex];
     final style = _styleForLevel(question.item.level);
+    final tokens = SpeakeryThemeTokens.of(context);
 
     return Column(
       children: [
         _buildTopBar(subtitle: modeSubtitle(selectedArenaMode)),
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
-          child: Container(
+          child: IosLiquidGlassSurface(
+            radius: 28,
+            accent: style.start,
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              color: Colors.white.withAlpha(12),
-              border: Border.all(color: Colors.white.withAlpha(18)),
-            ),
             child: Column(
               children: [
                 Row(
@@ -12046,7 +11955,7 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
                   child: LinearProgressIndicator(
                     value: progress,
                     minHeight: 9,
-                    backgroundColor: Colors.white.withAlpha(14),
+                    backgroundColor: tokens.border,
                     valueColor: AlwaysStoppedAnimation<Color>(style.end),
                   ),
                 ),
@@ -12062,30 +11971,13 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
               duration: const Duration(milliseconds: 320),
               switchInCurve: Curves.easeOutCubic,
               switchOutCurve: Curves.easeInCubic,
-              child: Container(
+              child: IosLiquidGlassSurface(
                 key:
                     ValueKey('challenge_card_${currentIndex}_${question.type}'),
+                radius: 32,
+                strong: true,
+                accent: style.end,
                 padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF0B1020),
-                      style.start.withAlpha(42),
-                      const Color(0xFFFF4FD8).withAlpha(20),
-                      style.end.withAlpha(24),
-                    ],
-                  ),
-                  border: Border.all(color: style.end.withAlpha(58)),
-                  boxShadow: [
-                    BoxShadow(
-                        color: style.end.withAlpha(28),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12)),
-                  ],
-                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -12103,14 +11995,14 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
                           horizontal: 16, vertical: 20),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(24),
-                        color: Colors.black.withAlpha(44),
+                        color: tokens.inputSurface,
                         border: Border.all(color: style.end.withAlpha(32)),
                       ),
                       child: Text(
                         question.prompt,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: tokens.textPrimary,
                             fontSize: 22,
                             height: 1.2,
                             fontWeight: FontWeight.w900),
@@ -12141,14 +12033,13 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
                               padding: const EdgeInsets.all(13),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(20),
-                                color: Colors.black.withAlpha(36),
-                                border: Border.all(
-                                    color: Colors.white.withAlpha(14)),
+                                color: tokens.inputSurface,
+                                border: Border.all(color: tokens.border),
                               ),
                               child: Text(
                                 question.explanation,
-                                style: const TextStyle(
-                                    color: Color(0xFFEAFBFF),
+                                style: TextStyle(
+                                    color: tokens.textPrimary,
                                     fontSize: 12.5,
                                     height: 1.35,
                                     fontWeight: FontWeight.w700),
@@ -12173,7 +12064,7 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
                   t('Answer to unlock the next move.',
                       'Devam etmek için cevap ver.'),
                   style: TextStyle(
-                      color: Colors.white.withAlpha(150),
+                      color: tokens.textSecondary,
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700),
                 ),
@@ -12207,12 +12098,13 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
   Widget _buildOption(
       String option, _ChallengeArenaQuestion question, _LevelStyle style) {
     final isSelected = selectedAnswer == option;
+    final tokens = SpeakeryThemeTokens.of(context);
     final isCorrect = option == question.correctAnswer;
     final showCorrect = answered && isCorrect;
     final showWrong = answered && isSelected && !isCorrect;
 
-    Color borderColor = Colors.white.withAlpha(17);
-    Color backgroundColor = Colors.white.withAlpha(10);
+    Color borderColor = tokens.border;
+    Color backgroundColor = tokens.inputSurface;
     Color glowColor = Colors.transparent;
     IconData icon = Icons.circle_outlined;
     double scale = 1.0;
@@ -12265,13 +12157,13 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
             ),
             child: Row(
               children: [
-                Icon(icon, color: Colors.white, size: 20),
+                Icon(icon, color: tokens.textPrimary, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     option,
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: tokens.textPrimary,
                         fontSize: 14,
                         height: 1.25,
                         fontWeight: FontWeight.w800),
@@ -12331,28 +12223,11 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
               subtitle: t('Rewards, results and restart.',
                   'Ödüller, sonuçlar ve yeniden başlat.')),
           const SizedBox(height: 24),
-          Container(
-            width: double.infinity,
+          IosLiquidGlassSurface(
+            radius: 34,
+            strong: true,
+            accent: summaryAccent,
             padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(34),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF151423),
-                  Color(0xFF201A36),
-                  Color(0xFF2A1E43),
-                ],
-              ),
-              border: Border.all(color: Colors.white.withAlpha(16)),
-              boxShadow: [
-                BoxShadow(
-                    color: summaryAccent.withAlpha(24),
-                    blurRadius: 24,
-                    offset: const Offset(0, 14)),
-              ],
-            ),
             child: Column(
               children: [
                 ScaleTransition(
@@ -12380,8 +12255,8 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
                 Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: SpeakeryThemeTokens.of(context).textPrimary,
                       fontSize: 28,
                       fontWeight: FontWeight.w900),
                 ),
@@ -12407,85 +12282,87 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
                         fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 14),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      color: Colors.black.withAlpha(24),
-                      border: Border.all(color: Colors.white.withAlpha(12)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.sports_kabaddi_rounded,
-                                color: Colors.white, size: 17),
-                            const SizedBox(width: 7),
-                            Expanded(
-                              child: Text(
-                                t('Competitive Summary', 'Rekabet Özeti'),
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w900),
-                              ),
-                            ),
-                            Text(
-                              '${(score - opponentScore).abs()} ${t('pt gap', 'puan fark')}',
-                              style: TextStyle(
-                                  color: Colors.white.withAlpha(165),
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w800),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _DuelPlayerCard(
-                                name: t('You', 'Sen'),
-                                score: score,
-                                accent: summaryAccent,
-                                isPrimary: true,
-                              ),
-                            ),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 8),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
-                                  color: Colors.white.withAlpha(8),
-                                  border: Border.all(
-                                      color: Colors.white.withAlpha(12)),
-                                ),
-                                child: const Text(
-                                  'VS',
+                  Builder(builder: (context) {
+                    final tokens = SpeakeryThemeTokens.of(context);
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        color: tokens.inputSurface,
+                        border: Border.all(color: tokens.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.sports_kabaddi_rounded,
+                                  color: tokens.textPrimary, size: 17),
+                              const SizedBox(width: 7),
+                              Expanded(
+                                child: Text(
+                                  t('Competitive Summary', 'Rekabet Özeti'),
                                   style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11.5,
+                                      color: tokens.textPrimary,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.w900),
                                 ),
                               ),
-                            ),
-                            Expanded(
-                              child: _DuelPlayerCard(
-                                name: opponentName,
-                                score: opponentScore,
-                                accent: Colors.white.withAlpha(160),
-                                isPrimary: false,
+                              Text(
+                                '${(score - opponentScore).abs()} ${t('pt gap', 'puan fark')}',
+                                style: TextStyle(
+                                    color: tokens.textSecondary,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w800),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _DuelPlayerCard(
+                                  name: t('You', 'Sen'),
+                                  score: score,
+                                  accent: summaryAccent,
+                                  isPrimary: true,
+                                ),
+                              ),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(999),
+                                    color: tokens.inputSurface,
+                                    border: Border.all(color: tokens.border),
+                                  ),
+                                  child: Text(
+                                    'VS',
+                                    style: TextStyle(
+                                        color: tokens.textPrimary,
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w900),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: _DuelPlayerCard(
+                                  name: opponentName,
+                                  score: opponentScore,
+                                  accent: tokens.textSecondary,
+                                  isPrimary: false,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
                 ],
                 const SizedBox(height: 18),
                 Row(
@@ -12493,8 +12370,8 @@ class _ChallengeArenaScreenState extends State<_ChallengeArenaScreen>
                   children: [
                     Text(
                       '$score/$total',
-                      style: const TextStyle(
-                          color: Colors.white,
+                      style: TextStyle(
+                          color: SpeakeryThemeTokens.of(context).textPrimary,
                           fontSize: 34,
                           fontWeight: FontWeight.w900),
                     ),
@@ -12597,31 +12474,22 @@ class _ArenaModeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              startColor.withAlpha(76),
-              const Color(0xFF111827).withAlpha(225),
-              endColor.withAlpha(70),
-            ],
-          ),
-          border: Border.all(color: endColor.withAlpha(58)),
-          boxShadow: [
-            BoxShadow(
-              color: endColor.withAlpha(30),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
-            ),
+      child: IosLiquidGlassSurface(
+        radius: 30,
+        strong: true,
+        accent: startColor,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            startColor.withAlpha(tokens.isLight ? 54 : 68),
+            endColor.withAlpha(tokens.isLight ? 46 : 58),
           ],
         ),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
         child: Stack(
           children: [
             Positioned(
@@ -12632,8 +12500,8 @@ class _ArenaModeCard extends StatelessWidget {
                 height: 86,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withAlpha(7),
-                  border: Border.all(color: Colors.white.withAlpha(8)),
+                  color: Colors.white.withAlpha(tokens.isLight ? 30 : 7),
+                  border: Border.all(color: tokens.border),
                 ),
               ),
             ),
@@ -12668,8 +12536,8 @@ class _ArenaModeCard extends StatelessWidget {
                             title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: tokens.textPrimary,
                               fontSize: 20,
                               fontWeight: FontWeight.w900,
                               letterSpacing: -0.35,
@@ -12681,7 +12549,7 @@ class _ArenaModeCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Colors.white.withAlpha(190),
+                              color: tokens.textSecondary,
                               fontSize: 11.7,
                               height: 1.2,
                               fontWeight: FontWeight.w700,
@@ -12696,22 +12564,22 @@ class _ArenaModeCard extends StatelessWidget {
                           horizontal: 13, vertical: 10),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(17),
-                        color: Colors.white.withAlpha(12),
-                        border: Border.all(color: Colors.white.withAlpha(16)),
+                        color: tokens.inputSurface,
+                        border: Border.all(color: tokens.border),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             'Go',
                             style: TextStyle(
-                                color: Colors.white,
+                                color: tokens.textPrimary,
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w900),
                           ),
-                          SizedBox(width: 5),
+                          const SizedBox(width: 5),
                           Icon(Icons.chevron_right_rounded,
-                              color: Colors.white, size: 16),
+                              color: tokens.textPrimary, size: 16),
                         ],
                       ),
                     ),
@@ -12783,8 +12651,8 @@ class _ArenaMetaBadge extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: SpeakeryThemeTokens.of(context).textPrimary,
                   fontSize: 10.4,
                   fontWeight: FontWeight.w900),
             ),
@@ -12802,17 +12670,20 @@ class _ArenaModeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        color: Colors.white.withAlpha(11),
-        border: Border.all(color: Colors.white.withAlpha(14)),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-            color: Colors.white, fontSize: 10.2, fontWeight: FontWeight.w800),
+        style: TextStyle(
+            color: tokens.textPrimary,
+            fontSize: 10.2,
+            fontWeight: FontWeight.w800),
       ),
     );
   }
@@ -12826,24 +12697,25 @@ class _ArenaStatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white.withAlpha(14),
-        border: Border.all(color: Colors.white.withAlpha(18)),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: Colors.white, size: 13),
+          Icon(icon, color: tokens.textPrimary, size: 13),
           const SizedBox(width: 5),
           Flexible(
               child: Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 10,
                       fontWeight: FontWeight.w900))),
         ],
@@ -12869,6 +12741,7 @@ class _ArenaTimerStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final urgent = secondsLeft <= 10 && totalSeconds > 0;
 
     return AnimatedContainer(
@@ -12907,8 +12780,8 @@ class _ArenaTimerStrip extends StatelessWidget {
             child: Center(
               child: Text(
                 '$secondsLeft',
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w900),
               ),
@@ -12930,7 +12803,7 @@ class _ArenaTimerStrip extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: progress,
                     minHeight: 8,
-                    backgroundColor: Colors.white.withAlpha(14),
+                    backgroundColor: tokens.border,
                     valueColor: AlwaysStoppedAnimation<Color>(color),
                   ),
                 ),
@@ -12957,20 +12830,21 @@ class _ArenaScoreChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.black.withAlpha(26),
-        border: Border.all(color: Colors.white.withAlpha(16)),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
       ),
       child: Column(
         children: [
           Text(value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: tokens.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.w900)),
           const SizedBox(height: 2),
@@ -12978,7 +12852,7 @@ class _ArenaScoreChip extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                  color: Colors.white.withAlpha(160),
+                  color: tokens.textSecondary,
                   fontSize: 9.5,
                   fontWeight: FontWeight.w800)),
         ],
@@ -13008,26 +12882,15 @@ class _ArenaLeaderboardPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final tabs = ['Weekly', 'Global'];
     final topThree = entries.take(3).toList();
     final others = entries.skip(3).toList();
 
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 30,
+      accent: const Color(0xFFFFD166),
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withAlpha(8),
-            const Color(0xFFFFD166).withAlpha(10),
-            const Color(0xFF8B5CF6).withAlpha(8),
-          ],
-        ),
-        border: Border.all(color: Colors.white.withAlpha(12)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -13045,8 +12908,8 @@ class _ArenaLeaderboardPanel extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: tokens.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
                       ),
@@ -13055,7 +12918,7 @@ class _ArenaLeaderboardPanel extends StatelessWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        color: Colors.white.withAlpha(150),
+                        color: tokens.textSecondary,
                         fontSize: 11.2,
                         fontWeight: FontWeight.w700,
                       ),
@@ -13070,8 +12933,8 @@ class _ArenaLeaderboardPanel extends StatelessWidget {
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              color: Colors.black.withAlpha(24),
-              border: Border.all(color: Colors.white.withAlpha(10)),
+              color: tokens.inputSurface,
+              border: Border.all(color: tokens.border),
             ),
             child: Row(
               children: tabs.map((tab) {
@@ -13099,9 +12962,8 @@ class _ArenaLeaderboardPanel extends StatelessWidget {
                         label,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: selected
-                              ? Colors.white
-                              : Colors.white.withAlpha(145),
+                          color:
+                              selected ? Colors.white : tokens.textSecondary,
                           fontSize: 11.5,
                           fontWeight: FontWeight.w900,
                         ),
@@ -13225,8 +13087,8 @@ class _ArenaPodiumMiniCard extends StatelessWidget {
                 ),
                 child: Text(
                   entry.name.characters.first.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: SpeakeryThemeTokens.of(context).textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w900,
                   ),
@@ -13261,8 +13123,8 @@ class _ArenaPodiumMiniCard extends StatelessWidget {
             entry.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: SpeakeryThemeTokens.of(context).textPrimary,
               fontSize: 12.5,
               fontWeight: FontWeight.w900,
             ),
@@ -13271,7 +13133,7 @@ class _ArenaPodiumMiniCard extends StatelessWidget {
           Text(
             '${entry.xp} XP',
             style: TextStyle(
-              color: Colors.white.withAlpha(180),
+              color: SpeakeryThemeTokens.of(context).textSecondary,
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
             ),
@@ -13304,16 +13166,16 @@ class _ArenaLeaderboardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     const glow = Color(0xFF60A5FA);
-    final borderColor = entry.isCurrentUser
-        ? Colors.white.withAlpha(150)
-        : Colors.white.withAlpha(12);
+    final borderColor =
+        entry.isCurrentUser ? glow.withAlpha(150) : tokens.border;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        color: Colors.white.withAlpha(8),
+        color: tokens.inputSurface,
         border: Border.all(color: borderColor),
       ),
       child: Row(
@@ -13332,8 +13194,8 @@ class _ArenaLeaderboardTile extends StatelessWidget {
                 ),
                 child: Text(
                   entry.name.characters.first.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
@@ -13348,13 +13210,13 @@ class _ArenaLeaderboardTile extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF111827),
+                    color: tokens.elevatedSurface,
                     border: Border.all(color: glow.withAlpha(60)),
                   ),
                   child: Text(
                     '$rank',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 8.5,
                       fontWeight: FontWeight.w900,
                     ),
@@ -13370,8 +13232,8 @@ class _ArenaLeaderboardTile extends StatelessWidget {
               children: [
                 Text(
                   entry.name,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 13.2,
                     fontWeight: FontWeight.w900,
                   ),
@@ -13380,7 +13242,7 @@ class _ArenaLeaderboardTile extends StatelessWidget {
                 Text(
                   '${entry.xp} XP  •  $streakLabel ${entry.streak}',
                   style: TextStyle(
-                    color: Colors.white.withAlpha(170),
+                    color: tokens.textSecondary,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -13446,25 +13308,28 @@ class _RewardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        color: Colors.white.withAlpha(18),
-        border: Border.all(color: Colors.white.withAlpha(28)),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
       ),
       child: Column(
         children: [
           Text(
             value,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
+            style: TextStyle(
+                color: tokens.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 3),
           Text(
             label,
             style: TextStyle(
-                color: Colors.white.withAlpha(210),
+                color: tokens.textSecondary,
                 fontSize: 10.5,
                 fontWeight: FontWeight.w800),
           ),
@@ -13489,11 +13354,12 @@ class _DuelPlayerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: Colors.white.withAlpha(isPrimary ? 10 : 6),
+        color: tokens.inputSurface,
         border: Border.all(color: accent.withAlpha(isPrimary ? 80 : 36)),
       ),
       child: Column(
@@ -13508,7 +13374,7 @@ class _DuelPlayerCard extends StatelessWidget {
             ),
             child: Icon(
               isPrimary ? Icons.person_rounded : Icons.person_outline_rounded,
-              color: Colors.white,
+              color: tokens.textPrimary,
               size: 22,
             ),
           ),
@@ -13517,8 +13383,8 @@ class _DuelPlayerCard extends StatelessWidget {
             name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-                color: Colors.white,
+            style: TextStyle(
+                color: tokens.textPrimary,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800),
           ),
@@ -13526,14 +13392,14 @@ class _DuelPlayerCard extends StatelessWidget {
           Text(
             '$score',
             style: TextStyle(
-                color: isPrimary ? accent : Colors.white,
+                color: isPrimary ? accent : tokens.textPrimary,
                 fontSize: 24,
                 fontWeight: FontWeight.w900),
           ),
           Text(
             'PTS',
             style: TextStyle(
-                color: Colors.white.withAlpha(150),
+                color: tokens.textSecondary,
                 fontSize: 10.5,
                 fontWeight: FontWeight.w800),
           ),

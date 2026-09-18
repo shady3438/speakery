@@ -1,10 +1,9 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../data/reading/reading_models.dart';
 import '../../data/reading/reading_repository.dart';
 import '../../theme/speakery_theme_tokens.dart';
+import '../../widgets/ios_liquid_glass.dart';
 
 class ReadingResultScreen extends StatelessWidget {
   final ReadingLesson lesson;
@@ -59,13 +58,13 @@ class ReadingResultScreen extends StatelessWidget {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
             children: [
-              _topBar(context, palette),
+              _topBar(context, palette, tokens),
               const SizedBox(height: 16),
-              _resultHero(palette, percent),
+              _resultHero(palette, tokens, percent),
               const SizedBox(height: 12),
-              _scoreGrid(palette, percent),
+              _scoreGrid(palette, tokens, percent),
               const SizedBox(height: 12),
-              _lessonSummary(palette),
+              _lessonSummary(palette, tokens),
               const SizedBox(height: 16),
               _actions(context, palette),
             ],
@@ -75,7 +74,8 @@ class ReadingResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _topBar(BuildContext context, _LevelPalette palette) {
+  Widget _topBar(BuildContext context, _LevelPalette palette,
+      SpeakeryThemeTokens tokens) {
     return Row(
       children: [
         _TapScale(
@@ -86,12 +86,12 @@ class ReadingResultScreen extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
-              color: Colors.white.withAlpha(10),
-              border: Border.all(color: Colors.white.withAlpha(16)),
+              color: tokens.inputSurface,
+              border: Border.all(color: tokens.border),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.arrow_back_ios_new_rounded,
-              color: Colors.white,
+              color: tokens.textPrimary,
               size: 18,
             ),
           ),
@@ -133,8 +133,8 @@ class ReadingResultScreen extends StatelessWidget {
                     t('Reading Result', 'Okuma Sonucu'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 21,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.45,
@@ -149,7 +149,8 @@ class ReadingResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _resultHero(_LevelPalette palette, int percent) {
+  Widget _resultHero(
+      _LevelPalette palette, SpeakeryThemeTokens tokens, int percent) {
     final strong = percent >= 80;
     final good = percent >= 60;
 
@@ -197,8 +198,8 @@ class ReadingResultScreen extends StatelessWidget {
                     : t('Good start — try again.',
                         'İyi başlangıç — tekrar dene.'),
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: tokens.textPrimary,
               fontSize: 24,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.7,
@@ -209,7 +210,7 @@ class ReadingResultScreen extends StatelessWidget {
             lesson.title,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withAlpha(155),
+              color: tokens.textSecondary,
               fontSize: 13,
               height: 1.35,
               fontWeight: FontWeight.w700,
@@ -231,7 +232,7 @@ class ReadingResultScreen extends StatelessWidget {
                       'Zaten tamamlandı · XP daha önce verildi'),
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white.withAlpha(205),
+                color: tokens.textPrimary,
                 fontSize: 11.2,
                 fontWeight: FontWeight.w900,
               ),
@@ -244,7 +245,8 @@ class ReadingResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _scoreGrid(_LevelPalette palette, int percent) {
+  Widget _scoreGrid(
+      _LevelPalette palette, SpeakeryThemeTokens tokens, int percent) {
     return Row(
       children: [
         Expanded(
@@ -261,7 +263,7 @@ class ReadingResultScreen extends StatelessWidget {
             icon: Icons.track_changes_rounded,
             value: '$percent%',
             label: t('Accuracy', 'Doğruluk'),
-            color: const Color(0xFF22C55E),
+            color: tokens.success,
           ),
         ),
         const SizedBox(width: 10),
@@ -270,14 +272,14 @@ class ReadingResultScreen extends StatelessWidget {
             icon: Icons.bolt_rounded,
             value: earnedXP > 0 ? '+$earnedXP' : '0',
             label: 'XP',
-            color: const Color(0xFFFF8A00),
+            color: tokens.warning,
           ),
         ),
       ],
     );
   }
 
-  Widget _lessonSummary(_LevelPalette palette) {
+  Widget _lessonSummary(_LevelPalette palette, SpeakeryThemeTokens tokens) {
     return _GlassCard(
       radius: 28,
       padding: const EdgeInsets.all(16),
@@ -310,7 +312,7 @@ class ReadingResultScreen extends StatelessWidget {
                     'Bu ders ilerlemene eklendi.')
                 : t('XP is only awarded once per reading.',
                     'XP her okuma için sadece bir kez verilir.'),
-            color: earnedXP > 0 ? const Color(0xFF22C55E) : Colors.white,
+            color: earnedXP > 0 ? tokens.success : null,
           ),
         ],
       ),
@@ -387,6 +389,7 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 9),
       decoration: BoxDecoration(
@@ -400,8 +403,8 @@ class _MetricCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: tokens.textPrimary,
               fontSize: 17.5,
               fontWeight: FontWeight.w900,
             ),
@@ -410,7 +413,7 @@ class _MetricCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withAlpha(135),
+              color: tokens.textSecondary,
               fontSize: 10.5,
               fontWeight: FontWeight.w800,
             ),
@@ -425,26 +428,28 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  final Color color;
+  final Color? color;
 
   const _InfoRow({
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.color,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    final finalColor = color == Colors.white ? Colors.white70 : color;
+    final tokens = SpeakeryThemeTokens.of(context);
+    final accent = color;
+    final finalColor = accent ?? tokens.textSecondary;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: finalColor.withAlpha(color == Colors.white ? 8 : 12),
+        color: finalColor.withAlpha(accent == null ? 8 : 12),
         border: Border.all(
-          color: finalColor.withAlpha(color == Colors.white ? 18 : 34),
+          color: finalColor.withAlpha(accent == null ? 18 : 34),
         ),
       ),
       child: Row(
@@ -459,8 +464,8 @@ class _InfoRow extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 13.4,
                     fontWeight: FontWeight.w900,
                   ),
@@ -471,7 +476,7 @@ class _InfoRow extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withAlpha(135),
+                    color: tokens.textSecondary,
                     fontSize: 11.2,
                     height: 1.25,
                     fontWeight: FontWeight.w600,
@@ -503,6 +508,7 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _TapScale(
       onTap: onTap,
       child: Container(
@@ -513,7 +519,7 @@ class _ActionButton extends StatelessWidget {
           gradient: filled
               ? LinearGradient(colors: [palette.start, palette.end])
               : null,
-          color: filled ? null : Colors.white.withAlpha(9),
+          color: filled ? null : tokens.inputSurface,
           border: Border.all(
             color: filled ? Colors.transparent : palette.start.withAlpha(34),
           ),
@@ -530,12 +536,14 @@ class _ActionButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 19),
+            Icon(icon,
+                color: filled ? Colors.white : tokens.textPrimary,
+                size: 19),
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: filled ? Colors.white : tokens.textPrimary,
                 fontSize: 13.2,
                 fontWeight: FontWeight.w900,
               ),
@@ -558,14 +566,15 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Row(
       children: [
-        Icon(icon, color: Colors.white, size: 19),
+        Icon(icon, color: tokens.textPrimary, size: 19),
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: tokens.textPrimary,
             fontSize: 15.5,
             fontWeight: FontWeight.w900,
           ),
@@ -588,13 +597,14 @@ class _ProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final safeValue = value.clamp(0.0, 1.0);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),
       child: Container(
         height: height,
-        color: Colors.white.withAlpha(18),
+        color: tokens.border,
         child: Align(
           alignment: Alignment.centerLeft,
           child: AnimatedFractionallySizedBox(
@@ -628,28 +638,11 @@ class _GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withAlpha(12),
-                accentColor.withAlpha(9),
-                Colors.white.withAlpha(7),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(radius),
-            border: Border.all(color: accentColor.withAlpha(30)),
-          ),
-          child: child,
-        ),
-      ),
+    return IosLiquidGlassSurface(
+      radius: radius,
+      padding: padding,
+      accent: accentColor,
+      child: child,
     );
   }
 }

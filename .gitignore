@@ -96,3 +96,6 @@ migrate_working_dir/
 # Symbolication and obfuscation
 app.*.symbols
 app.*.map.json
+
+# Machine-specific tooling config (absolute paths)
+.mcp.json

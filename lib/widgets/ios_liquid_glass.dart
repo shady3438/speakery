@@ -5,24 +5,49 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/speakery_theme_tokens.dart';
+import 'liquid_glass_refraction.dart';
 import 'voxa_fox_motifs.dart';
 
 class IosLiquidMotion {
   const IosLiquidMotion._();
 
-  static const entrance = Duration(milliseconds: 560);
+  static const entrance = Duration(milliseconds: 640);
   static const quick = Duration(milliseconds: 220);
   static const settle = Duration(milliseconds: 420);
-  static const expressive = Duration(milliseconds: 680);
+  static const expressive = Duration(milliseconds: 760);
   static const ambient = Duration(seconds: 11);
+
+  /// Pointer enter/leave easing for the glass lift.
+  static const hover = Duration(milliseconds: 420);
+  static const hoverOut = Duration(milliseconds: 560);
+
+  /// One full trip of the blue/violet rim light around a card.
+  static const orbit = Duration(seconds: 9);
 
   static const Curve press = Curves.easeOutCubic;
   static const Curve release = Curves.easeOutBack;
   static const Curve settleCurve = Curves.easeOutCubic;
   static const Curve selectedCurve = Curves.easeInOutCubicEmphasized;
 
+  /// Long, soft deceleration used by glass surfaces.
+  static const Curve glass = Curves.easeOutQuart;
+
   static bool reduce(BuildContext context) =>
       MediaQuery.disableAnimationsOf(context);
+}
+
+/// Saturation (and a whisper of lift) applied to whatever sits behind a glass
+/// pane, mirroring the vibrancy pass iOS runs under its material.
+ColorFilter _vibrancy(bool isLight) {
+  const double s = 1.42;
+  const double lr = 0.213, lg = 0.715, lb = 0.072;
+  final double b = isLight ? 6 : 2; // tiny brightness lift
+  return ColorFilter.matrix(<double>[
+    lr + s * (1 - lr), lg - s * lg, lb - s * lb, 0, b,
+    lr - s * lr, lg + s * (1 - lg), lb - s * lb, 0, b,
+    lr - s * lr, lg - s * lg, lb + s * (1 - lb), 0, b,
+    0, 0, 0, 1, 0,
+  ]);
 }
 
 class IosLiquidGlassSurface extends StatefulWidget {
@@ -36,6 +61,23 @@ class IosLiquidGlassSurface extends StatefulWidget {
   final double blur;
   final bool strong;
 
+  /// Pointer-reactive lift, cursor-tracked specular and a brighter rim light.
+  /// Turn it off for tiny decorative chips that should stay perfectly still.
+  final bool interactive;
+
+  /// The thin blue/violet light that travels around the edge.
+  final bool rimLight;
+
+  /// Sample and blur what is behind the pane with a real [BackdropFilter].
+  ///
+  /// This is by far the most expensive thing a glass surface can do: each one
+  /// forces its own backdrop snapshot, and a screen carrying a dozen cards pays
+  /// for a dozen of them every frame. Over the app's smooth page gradient a
+  /// blurred backdrop is nearly indistinguishable from a translucent fill, so
+  /// panes stay unblurred by default and only surfaces that genuinely sit over
+  /// moving content — sheets, bars, overlays — should ask for it.
+  final bool blurBackdrop;
+
   const IosLiquidGlassSurface({
     super.key,
     required this.child,
@@ -45,8 +87,11 @@ class IosLiquidGlassSurface extends StatefulWidget {
     this.accent,
     this.gradient,
     this.borderColor,
-    this.blur = 24,
+    this.blur = 28,
     this.strong = false,
+    this.interactive = true,
+    this.rimLight = true,
+    this.blurBackdrop = false,
   });
 
   @override
@@ -54,17 +99,42 @@ class IosLiquidGlassSurface extends StatefulWidget {
 }
 
 class _IosLiquidGlassSurfaceState extends State<IosLiquidGlassSurface>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _sheenController;
+    with TickerProviderStateMixin {
+  /// Drives the rim light orbit and the slow specular drift.
+  late final AnimationController _orbit;
+
+  /// 0 = resting, 1 = pointer is over the surface.
+  late final AnimationController _lift;
+
+  /// Cursor position in local coordinates; null when the pointer is away.
+  final ValueNotifier<Offset?> _pointer = ValueNotifier<Offset?>(null);
+
   bool _reduceMotion = false;
 
   @override
   void initState() {
     super.initState();
-    _sheenController = AnimationController(
+    _orbit = AnimationController(
       vsync: this,
-      duration: IosLiquidMotion.ambient,
-    )..repeat();
+      duration: IosLiquidMotion.orbit,
+    );
+    _lift = AnimationController(
+      vsync: this,
+      duration: IosLiquidMotion.hover,
+      reverseDuration: IosLiquidMotion.hoverOut,
+    )..addListener(_syncOrbit);
+  }
+
+  /// The rim light only travels while a pane is engaged. At rest it is a still,
+  /// even wash, which leaves an idle screen with no repainting surfaces at all —
+  /// a list of sixty cards each ticking its own orbit is pure wasted frames.
+  void _syncOrbit() {
+    final engaged = _lift.value > .001;
+    if (engaged && !_orbit.isAnimating && !_reduceMotion) {
+      _orbit.repeat();
+    } else if (!engaged && _orbit.isAnimating) {
+      _orbit.stop();
+    }
   }
 
   @override
@@ -74,17 +144,188 @@ class _IosLiquidGlassSurfaceState extends State<IosLiquidGlassSurface>
     if (_reduceMotion == reduceMotion) return;
     _reduceMotion = reduceMotion;
     if (reduceMotion) {
-      _sheenController.stop();
-      _sheenController.value = .18;
-    } else if (!_sheenController.isAnimating) {
-      _sheenController.repeat();
+      _orbit.stop();
+      _orbit.value = .18;
+    } else {
+      _syncOrbit();
     }
   }
 
   @override
   void dispose() {
-    _sheenController.dispose();
+    _orbit.dispose();
+    _lift.dispose();
+    _pointer.dispose();
+    _refractShader?.dispose();
     super.dispose();
+  }
+
+  // ── True edge refraction (Impeller only) ──────────────────────────────────
+  FragmentShader? _refractShader;
+  ImageFilter? _refractFilter;
+  double? _refractRadius;
+  Size? _refractSeed;
+  double? _refractRatio;
+
+  /// Rebuilds the refraction filter only when its configuration changes, so a
+  /// scrolling list is not allocating shaders every frame.
+  ///
+  /// The filter runs over the backdrop *texture*, so every length handed to it
+  /// has to be in physical pixels — logical units would make the corner radius
+  /// and the bend roughly three times too small on a 3x screen.
+  ImageFilter? _refractionFilter(
+    double radius,
+    Size screen,
+    double ratio,
+    bool strong,
+  ) {
+    if (!LiquidGlassRefraction.isReady) return null;
+    if (_refractFilter != null &&
+        _refractRadius == radius &&
+        _refractSeed == screen &&
+        _refractRatio == ratio) {
+      return _refractFilter;
+    }
+    _refractShader?.dispose();
+    _refractShader = LiquidGlassRefraction.shaderFor(
+      size: screen * ratio,
+      radius: radius * ratio,
+      refraction: (strong ? 10 : 7.5) * ratio,
+      dispersion: (strong ? 3.2 : 2.4) * ratio,
+      band: math.max(radius * 1.7, 20) * ratio,
+    );
+    final shader = _refractShader;
+    _refractFilter =
+        shader == null ? null : LiquidGlassRefraction.filterFor(shader);
+    _refractRadius = radius;
+    _refractSeed = screen;
+    _refractRatio = ratio;
+    return _refractFilter;
+  }
+
+  void _enter(PointerEnterEvent event) {
+    if (!widget.interactive) return;
+    _pointer.value = event.localPosition;
+    _lift.forward();
+  }
+
+  void _move(PointerHoverEvent event) {
+    if (!widget.interactive) return;
+    _pointer.value = event.localPosition;
+  }
+
+  void _exit(PointerExitEvent event) {
+    if (!widget.interactive) return;
+    _pointer.value = null;
+    _lift.reverse();
+  }
+
+  // Touch equivalent of hover. A Listener only observes pointers, so it never
+  // competes with the taps and scrolls the card already handles.
+  void _touchDown(PointerDownEvent event) {
+    if (!widget.interactive || event.kind == PointerDeviceKind.mouse) return;
+    _pointer.value = event.localPosition;
+    _lift.forward();
+  }
+
+  void _touchMove(PointerMoveEvent event) {
+    if (!widget.interactive || event.kind == PointerDeviceKind.mouse) return;
+    _pointer.value = event.localPosition;
+  }
+
+  void _touchRelease(PointerEvent event) {
+    if (!widget.interactive || event.kind == PointerDeviceKind.mouse) return;
+    _pointer.value = null;
+    _lift.reverse();
+  }
+
+  /// Wraps [child] in a real backdrop blur only when this pane asked for one.
+  ///
+  /// The blur, the edge refraction and the vibrancy pass all ride on the same
+  /// backdrop snapshot, so they are built together and skipped together.
+  Widget _withBackdrop({
+    required SpeakeryThemeTokens tokens,
+    required double blur,
+    required double radius,
+    required bool strong,
+    required Widget child,
+  }) {
+    if (!widget.blurBackdrop) return child;
+
+    // Blur → bend the rim (device only) → lift saturation, the way real glass
+    // behaves. Where the shader is unavailable the chain simply loses its
+    // middle link and the painted bevel carries the effect on its own.
+    ImageFilter backdrop = ImageFilter.blur(sigmaX: blur, sigmaY: blur);
+    final refraction = _refractionFilter(
+      radius,
+      MediaQuery.sizeOf(context),
+      MediaQuery.devicePixelRatioOf(context),
+      strong,
+    );
+    if (refraction != null) {
+      backdrop = ImageFilter.compose(outer: refraction, inner: backdrop);
+    }
+    backdrop = ImageFilter.compose(
+      outer: _vibrancy(tokens.isLight),
+      inner: backdrop,
+    );
+    return BackdropFilter(filter: backdrop, child: child);
+  }
+
+  LinearGradient _fill(SpeakeryThemeTokens tokens, Color tint, bool strong) {
+    if (tokens.isVoxaDark) {
+      return LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          const Color(0xFF21194A).withAlpha(strong ? 205 : 155),
+          const Color(0xFF100D2E).withAlpha(strong ? 222 : 178),
+          Color.alphaBlend(
+            tint.withAlpha(strong ? 30 : 18),
+            const Color(0xFF07091D).withAlpha(strong ? 232 : 188),
+          ),
+        ],
+        stops: const [0, .56, 1],
+      );
+    }
+    if (tokens.isVoxaTheme) {
+      return LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Colors.white.withAlpha(strong ? 240 : 218),
+          const Color(0xFFFFFAF4).withAlpha(strong ? 228 : 198),
+          const Color(0xFFFFE9D6).withAlpha(strong ? 172 : 126),
+        ],
+        stops: const [0, .62, 1],
+      );
+    }
+    // Default brand glass. The tint is deliberately faint: Liquid Glass reads
+    // as a lens, so what is behind the pane must stay visible. The sense of
+    // "glass" comes from the bevel and edge dispersion, not from white paint.
+    // With no blur pass behind it the pane needs a little more body of its own
+    // to still read as a surface rather than a bare outline.
+    final int body = widget.blurBackdrop ? 0 : (tokens.isLight ? 16 : 8);
+
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: tokens.isLight
+          ? [
+              Colors.white.withAlpha((strong ? 66 : 44) + body),
+              Color.alphaBlend(
+                tint.withAlpha(strong ? 20 : 14),
+                Colors.white.withAlpha((strong ? 48 : 30) + body),
+              ),
+              const Color(0xFFDCE8FF).withAlpha((strong ? 44 : 30) + body),
+            ]
+          : [
+              Colors.white.withAlpha((strong ? 26 : 15) + body),
+              tint.withAlpha(strong ? 20 : 11),
+              Colors.white.withAlpha((strong ? 10 : 5) + body),
+            ],
+      stops: const [0, .54, 1],
+    );
   }
 
   @override
@@ -100,230 +341,198 @@ class _IosLiquidGlassSurfaceState extends State<IosLiquidGlassSurface>
             .toDouble();
     final tint = tokens.adaptAccent(widget.accent ?? tokens.primaryAccent);
     final strong = widget.strong;
-    final surfaceGradient = widget.gradient ??
-        (tokens.isVoxaDark
-            ? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFF21194A).withAlpha(strong ? 205 : 155),
-                  const Color(0xFF100D2E).withAlpha(strong ? 222 : 178),
-                  Color.alphaBlend(
-                    tint.withAlpha(strong ? 30 : 18),
-                    const Color(0xFF07091D).withAlpha(strong ? 232 : 188),
-                  ),
-                ],
-                stops: const [0, .56, 1],
-              )
-            : tokens.isVoxaTheme
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withAlpha(strong ? 246 : 226),
-                      const Color(0xFFFFFAF4).withAlpha(strong ? 236 : 208),
-                      const Color(0xFFFFE9D6).withAlpha(strong ? 182 : 136),
-                    ],
-                    stops: const [0, .62, 1],
-                  )
-                : LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: tokens.isLight
-                        ? [
-                            Colors.white.withAlpha(strong ? 168 : 116),
-                            Color.alphaBlend(
-                              tint.withAlpha(strong ? 20 : 12),
-                              Colors.white.withAlpha(strong ? 132 : 86),
-                            ),
-                            const Color(0xFFE9EEFF)
-                                .withAlpha(strong ? 116 : 68),
-                          ]
-                        : [
-                            Colors.white.withAlpha(strong ? 30 : 18),
-                            tint.withAlpha(strong ? 21 : 12),
-                            Colors.white.withAlpha(strong ? 12 : 6),
-                          ],
-                    stops: const [0, .54, 1],
-                  ));
+    final isVoxa = tokens.isVoxaTheme;
+    final surfaceGradient = widget.gradient ?? _fill(tokens, tint, strong);
 
-    final surface = Container(
-      width: double.infinity,
-      margin: widget.margin,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        boxShadow: [
-          BoxShadow(
-            color: tokens.isVoxaTheme
-                ? (tokens.isVoxaDark
-                    ? tokens.warmAccent.withAlpha(strong ? 34 : 22)
-                    : tokens.secondaryAccent.withAlpha(strong ? 25 : 16))
-                : tokens.isLight
-                    ? const Color(0xFF20304A).withAlpha(strong ? 26 : 18)
-                    : Colors.black.withAlpha(strong ? 92 : 70),
-            blurRadius: strong ? 30 : 22,
-            spreadRadius: -3,
-            offset: const Offset(0, 14),
-          ),
-          BoxShadow(
-            color: tint.withAlpha(tokens.isLight ? 16 : 25),
-            blurRadius: strong ? 30 : 22,
-            spreadRadius: -5,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: AnimatedBuilder(
-            animation: _sheenController,
-            builder: (context, _) {
-              final phase = reduceMotion ? .18 : _sheenController.value;
-              final drift = math.sin(phase * math.pi * 2);
-              return Stack(
-                children: [
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(radius),
-                        gradient: surfaceGradient,
-                        border: Border.all(
-                          color: widget.borderColor ??
-                              (tokens.isVoxaTheme
-                                  ? (tokens.isVoxaDark
-                                      ? Color.alphaBlend(
-                                          tokens.secondaryAccent
-                                              .withAlpha(strong ? 66 : 42),
-                                          tokens.primaryAccent
-                                              .withAlpha(strong ? 48 : 30),
-                                        )
-                                      : tokens.secondaryAccent
-                                          .withAlpha(strong ? 42 : 29))
-                                  : tokens.isLight
-                                      ? Colors.white
-                                          .withAlpha(strong ? 190 : 145)
-                                      : Colors.white
-                                          .withAlpha(strong ? 55 : 37)),
-                          width: 1,
-                        ),
-                      ),
+    // The travelling edge light: brand blue into brand violet, or the warm
+    // Voxa pair when that skin is active.
+    final rimStart = isVoxa ? tokens.secondaryAccent : const Color(0xFF4C8DFF);
+    final rimEnd = isVoxa ? tokens.warmAccent : const Color(0xFF9B6BFF);
+
+    final lights = Listenable.merge([_orbit, _lift, _pointer]);
+
+
+    final glass = ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: _withBackdrop(
+        tokens: tokens,
+        blur: blur,
+        radius: radius,
+        strong: strong,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(radius),
+                  gradient: surfaceGradient,
+                ),
+              ),
+            ),
+            // Specular sheen, cursor bloom and glass thickness. Painted, so a
+            // moving pointer never rebuilds the card's content.
+            Positioned.fill(
+              child: IgnorePointer(
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    painter: _GlassInnerLights(
+                      repaint: lights,
+                      orbit: _orbit,
+                      lift: _lift,
+                      pointer: _pointer,
+                      radius: radius,
+                      tint: tint,
+                      isLight: tokens.isLight,
+                      strong: strong,
+                      reduceMotion: reduceMotion,
                     ),
                   ),
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(radius),
-                          gradient: LinearGradient(
-                            begin: Alignment(-1.1 + drift * .18, -1),
-                            end: Alignment(.92 + drift * .14, .95),
-                            colors: [
-                              Colors.white.withAlpha(tokens.isLight
-                                  ? (strong ? 72 : 46)
-                                  : (strong ? 28 : 16)),
-                              Colors.transparent,
-                              tint.withAlpha(tokens.isLight
-                                  ? (strong ? 16 : 10)
-                                  : (strong ? 20 : 12)),
-                              Colors.transparent,
-                            ],
-                            stops: const [0, .27, .62, 1],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: radius * .55,
-                    right: radius * .55,
-                    top: 0,
-                    child: Transform.translate(
-                      offset: Offset(drift * 10, 0),
-                      child: Container(
-                        height: 1.35,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.transparent,
-                              Colors.white
-                                  .withAlpha(tokens.isLight ? 250 : 118),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: -radius * 1.3,
-                    left: -radius * .7 + drift * 7,
-                    child: IgnorePointer(
-                      child: Container(
-                        width: radius * 4.2,
-                        height: radius * 2.6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              Colors.white.withAlpha(tokens.isLight ? 158 : 34),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (tokens.isVoxaTheme)
-                    Positioned.fill(
-                      child: VoxaFoxPatternLayer(
-                        color: tokens.isVoxaDark
-                            ? tokens.warmAccent
-                            : tokens.secondaryAccent,
-                        opacity: tokens.isVoxaDark
-                            ? (strong ? .05 : .028)
-                            : (strong ? .025 : .016),
-                        spacing: strong ? 154 : 176,
-                      ),
-                    ),
-                  if (tokens.isVoxaTheme)
-                    Positioned(
-                      right: 9,
-                      bottom: 7,
-                      child: VoxaFoxGlyph(
-                        size: strong ? 34 : 25,
-                        color: (tokens.isVoxaDark
-                                ? tokens.warmAccent
-                                : tokens.primaryAccent)
-                            .withAlpha(strong ? 48 : 30),
-                        fillColor: Colors.transparent,
-                        showTail: true,
-                      ),
-                    ),
-                  Padding(padding: widget.padding, child: widget.child),
-                ],
-              );
-            },
-          ),
+                ),
+              ),
+            ),
+            if (isVoxa)
+              Positioned.fill(
+                child: VoxaFoxPatternLayer(
+                  color: tokens.isVoxaDark
+                      ? tokens.warmAccent
+                      : tokens.secondaryAccent,
+                  opacity: tokens.isVoxaDark
+                      ? (strong ? .05 : .028)
+                      : (strong ? .025 : .016),
+                  spacing: strong ? 154 : 176,
+                ),
+              ),
+            if (isVoxa)
+              Positioned(
+                right: 9,
+                bottom: 7,
+                child: VoxaFoxGlyph(
+                  size: strong ? 34 : 25,
+                  color: (tokens.isVoxaDark
+                          ? tokens.warmAccent
+                          : tokens.primaryAccent)
+                      .withAlpha(strong ? 48 : 30),
+                  fillColor: Colors.transparent,
+                  showTail: true,
+                ),
+              ),
+            Padding(padding: widget.padding, child: widget.child),
+          ],
         ),
       ),
     );
+
+    // The rim sits above the clip so its halo can spill outside the card.
+    final framed = Stack(
+      children: [
+        glass,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: _GlassRimLight(
+                  repaint: lights,
+                  orbit: _orbit,
+                  lift: _lift,
+                  radius: radius,
+                  rimStart: rimStart,
+                  rimEnd: rimEnd,
+                  hairline: widget.borderColor,
+                  isLight: tokens.isLight,
+                  strong: strong,
+                  enabled: widget.rimLight,
+                  reduceMotion: reduceMotion,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final hoverable = widget.interactive
+        ? Listener(
+            onPointerDown: _touchDown,
+            onPointerMove: _touchMove,
+            onPointerUp: _touchRelease,
+            onPointerCancel: _touchRelease,
+            child: MouseRegion(
+              onEnter: _enter,
+              onHover: _move,
+              onExit: _exit,
+              child: framed,
+            ),
+          )
+        : framed;
+
+    final surface = AnimatedBuilder(
+      animation: _lift,
+      child: hoverable,
+      builder: (context, child) {
+        final t = Curves.easeOutCubic.transform(_lift.value.clamp(0.0, 1.0));
+        final baseShadow = isVoxa
+            ? (tokens.isVoxaDark
+                ? tokens.warmAccent.withAlpha(strong ? 34 : 22)
+                : tokens.secondaryAccent.withAlpha(strong ? 25 : 16))
+            : tokens.isLight
+                ? const Color(0xFF1D2C4A).withAlpha(strong ? 24 : 16)
+                : Colors.black.withAlpha(strong ? 92 : 70);
+
+        return Transform.translate(
+          offset: Offset(0, -4 * t),
+          child: Transform.scale(
+            scale: 1 + .016 * t,
+            child: Container(
+              width: double.infinity,
+              margin: widget.margin,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(radius),
+                boxShadow: [
+                  BoxShadow(
+                    color: baseShadow.withAlpha(
+                      (baseShadow.a * 255 * (1 + .55 * t)).round().clamp(0, 255),
+                    ),
+                    blurRadius: (strong ? 30 : 22) + 16 * t,
+                    spreadRadius: -3,
+                    offset: Offset(0, 14 + 6 * t),
+                  ),
+                  BoxShadow(
+                    color: tint.withAlpha(
+                      ((tokens.isLight ? 16 : 25) + 18 * t).round(),
+                    ),
+                    blurRadius: (strong ? 30 : 22) + 14 * t,
+                    spreadRadius: -5,
+                    offset: Offset(0, 8 + 4 * t),
+                  ),
+                  if (t > .01)
+                    BoxShadow(
+                      color: rimEnd.withAlpha((26 * t).round()),
+                      blurRadius: 30 + 14 * t,
+                      spreadRadius: -6,
+                      offset: const Offset(0, 10),
+                    ),
+                ],
+              ),
+              child: child,
+            ),
+          ),
+        );
+      },
+    );
+
     if (reduceMotion) return surface;
     return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: .972, end: 1),
+      tween: Tween<double>(begin: 0, end: 1),
       duration: strong ? IosLiquidMotion.expressive : IosLiquidMotion.entrance,
-      curve: IosLiquidMotion.settleCurve,
+      curve: IosLiquidMotion.glass,
       child: surface,
       builder: (context, value, child) {
-        final easedOpacity = ((value - .972) / .028).clamp(.0, 1.0).toDouble();
         return Opacity(
-          opacity: easedOpacity,
+          opacity: value.clamp(0.0, 1.0),
           child: Transform.translate(
-            offset: Offset(0, (1 - value) * 24),
+            offset: Offset(0, (1 - value) * 14),
             child: Transform.scale(
-              scale: value,
+              scale: .988 + .012 * value,
               alignment: Alignment.topCenter,
               child: child,
             ),
@@ -331,6 +540,377 @@ class _IosLiquidGlassSurfaceState extends State<IosLiquidGlassSurface>
         );
       },
     );
+  }
+}
+
+/// Everything that lives *inside* the glass: the drifting specular band, the
+/// soft crown bloom, the cursor highlight and the bottom thickness shade.
+///
+/// Every gradient fades to `sameColor.withAlpha(0)` rather than
+/// [Colors.transparent] — fading to transparent *black* is what produced the
+/// grey smear across the top of light-mode cards.
+class _GlassInnerLights extends CustomPainter {
+  final Animation<double> orbit;
+  final Animation<double> lift;
+  final ValueNotifier<Offset?> pointer;
+  final double radius;
+  final Color tint;
+  final bool isLight;
+  final bool strong;
+  final bool reduceMotion;
+
+  _GlassInnerLights({
+    required Listenable repaint,
+    required this.orbit,
+    required this.lift,
+    required this.pointer,
+    required this.radius,
+    required this.tint,
+    required this.isLight,
+    required this.strong,
+    required this.reduceMotion,
+  }) : super(repaint: repaint);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+
+    final rect = Offset.zero & size;
+    final rrect =
+        RRect.fromRectAndRadius(rect, Radius.circular(radius));
+    canvas.save();
+    canvas.clipRRect(rrect);
+
+    final phase = (reduceMotion ? .18 : orbit.value) * math.pi * 2;
+    final drift = math.sin(phase * .5);
+    final t = Curves.easeOutCubic.transform(lift.value.clamp(0.0, 1.0));
+
+    // 0. Frost — the whole pane brightens while the pointer rests on it, so the
+    // card being pointed at is unmistakable.
+    if (t > .01) {
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = Colors.white.withAlpha(((isLight ? 30 : 20) * t).round()),
+      );
+    }
+
+    // 1. Slow specular band sliding across the pane.
+    final bandAlpha = (isLight ? (strong ? 40 : 28) : (strong ? 26 : 16)) +
+        (16 * t).round();
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment(-1.15 + drift * .22, -1),
+          end: Alignment(.95 + drift * .18, 1),
+          colors: [
+            Colors.white.withAlpha(bandAlpha),
+            Colors.white.withAlpha(0),
+            tint.withAlpha((isLight ? 13 : 18) + (10 * t).round()),
+            tint.withAlpha(0),
+          ],
+          stops: const [0, .34, .6, 1],
+        ).createShader(rect),
+    );
+
+    // 2. Crown bloom — kept faint. Liquid Glass gets its read from the bevel,
+    // not from a milky wash across the top.
+    final bloomAlpha =
+        (isLight ? (strong ? 16 : 11) : (strong ? 15 : 10)) + (12 * t).round();
+    final bloomCenter = Offset(
+      size.width * (.34 + drift * .1),
+      -radius * .25,
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            Colors.white.withAlpha(bloomAlpha),
+            Colors.white.withAlpha(0),
+          ],
+        ).createShader(
+          Rect.fromCircle(
+            center: bloomCenter,
+            radius: math.max(size.width, size.height) * .62,
+          ),
+        ),
+    );
+
+    // 3. Cursor-tracked specular — the "liquid" part of liquid glass.
+    final cursor = pointer.value;
+    if (cursor != null && t > .01) {
+      final reach = math.max(size.shortestSide * .95, 130.0);
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              Colors.white.withAlpha(((isLight ? 96 : 62) * t).round()),
+              Colors.white.withAlpha(0),
+            ],
+            stops: const [0, 1],
+          ).createShader(Rect.fromCircle(center: cursor, radius: reach)),
+      );
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              tint.withAlpha(((isLight ? 42 : 48) * t).round()),
+              tint.withAlpha(0),
+            ],
+          ).createShader(
+            Rect.fromCircle(center: cursor, radius: reach * .58),
+          ),
+      );
+    }
+
+    // 4. Bottom shade — gives the pane a sense of thickness.
+    final shadeHeight = math.min(size.height * .3, 16.0);
+    canvas.drawRect(
+      Rect.fromLTWH(0, size.height - shadeHeight, size.width, shadeHeight),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isLight
+              ? [
+                  const Color(0xFF7C8EB4).withAlpha(0),
+                  const Color(0xFF7C8EB4).withAlpha(strong ? 10 : 7),
+                ]
+              : [
+                  const Color(0xFF05070F).withAlpha(0),
+                  const Color(0xFF05070F).withAlpha(strong ? 22 : 15),
+                ],
+        ).createShader(
+          Rect.fromLTWH(0, size.height - shadeHeight, size.width, shadeHeight),
+        ),
+    );
+
+    // 5. The bevel — the lit inner wall of the pane. This is what sells the
+    // "slab of glass" read: a bright lip where light enters at the top-left, a
+    // weaker return highlight at the bottom-right, and a thin shaded wall just
+    // inside both so the pane has measurable thickness.
+    // A hairline, not a lip. A wide bevel reads as a second, thicker pane
+    // stacked on the first one instead of a single thin sheet of glass.
+    final bevelWidth = math.min(radius * .12, 1.6).clamp(.9, 1.6);
+    final bevel = RRect.fromRectAndRadius(
+      rect.deflate(bevelWidth / 2),
+      Radius.circular(math.max(0, radius - bevelWidth / 2)),
+    );
+
+    canvas.drawRRect(
+      bevel,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = bevelWidth
+        ..shader = LinearGradient(
+          begin: Alignment(-1 + drift * .2, -1),
+          end: const Alignment(1, 1),
+          colors: [
+            Colors.white.withAlpha(
+              ((isLight ? 208 : 126) + 34 * t).round().clamp(0, 255),
+            ),
+            Colors.white.withAlpha((isLight ? 54 : 34) + (12 * t).round()),
+            Colors.white.withAlpha(0),
+          ],
+          stops: const [0, .38, .72],
+        ).createShader(rect),
+    );
+
+    // Return highlight on the far edge.
+    canvas.drawRRect(
+      bevel,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = bevelWidth * .8
+        ..shader = LinearGradient(
+          begin: const Alignment(1, 1),
+          end: const Alignment(-.2, -.2),
+          colors: [
+            Colors.white.withAlpha(
+              ((isLight ? 132 : 82) + 26 * t).round().clamp(0, 255),
+            ),
+            Colors.white.withAlpha(0),
+          ],
+          stops: const [0, .55],
+        ).createShader(rect),
+    );
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _GlassInnerLights old) {
+    return old.radius != radius ||
+        old.tint != tint ||
+        old.isLight != isLight ||
+        old.strong != strong ||
+        old.reduceMotion != reduceMotion;
+  }
+}
+
+/// The hairline frame plus the thin blue→violet light that orbits the card.
+class _GlassRimLight extends CustomPainter {
+  final Animation<double> orbit;
+  final Animation<double> lift;
+  final double radius;
+  final Color rimStart;
+  final Color rimEnd;
+  final Color? hairline;
+  final bool isLight;
+  final bool strong;
+  final bool enabled;
+  final bool reduceMotion;
+
+  _GlassRimLight({
+    required Listenable repaint,
+    required this.orbit,
+    required this.lift,
+    required this.radius,
+    required this.rimStart,
+    required this.rimEnd,
+    required this.hairline,
+    required this.isLight,
+    required this.strong,
+    required this.enabled,
+    required this.reduceMotion,
+  }) : super(repaint: repaint);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+
+    const inset = .6;
+    final rect = Offset.zero & size;
+    final frame = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        inset,
+        inset,
+        math.max(0, size.width - inset * 2),
+        math.max(0, size.height - inset * 2),
+      ),
+      Radius.circular(math.max(0, radius - inset)),
+    );
+
+    // Static hairline: bright along the top, cooling toward the bottom.
+    final hairPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    if (hairline != null) {
+      hairPaint.color = hairline!;
+    } else {
+      hairPaint.shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: isLight
+            ? [
+                Colors.white.withAlpha(strong ? 236 : 208),
+                const Color(0xFFAEBFE2).withAlpha(strong ? 132 : 104),
+              ]
+            : [
+                Colors.white.withAlpha(strong ? 62 : 44),
+                Colors.white.withAlpha(strong ? 20 : 12),
+              ],
+      ).createShader(rect);
+    }
+    canvas.drawRRect(frame, hairPaint);
+
+    // Chromatic dispersion. Real glass splits light at a steep edge, so the rim
+    // carries a magenta fringe on one side and a cyan one on the other. Offset
+    // by well under a pixel — it should be felt, not counted.
+    const disp = .7;
+    final fringeAlpha = isLight ? 54 : 66;
+    void fringe(Color color, Offset shift, Alignment from) {
+      canvas.save();
+      canvas.translate(shift.dx, shift.dy);
+      canvas.drawRRect(
+        frame,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..shader = LinearGradient(
+            begin: from,
+            end: Alignment(-from.x, -from.y),
+            colors: [
+              color.withAlpha(fringeAlpha),
+              color.withAlpha((fringeAlpha * .35).round()),
+              color.withAlpha(0),
+            ],
+            stops: const [0, .45, .85],
+          ).createShader(rect),
+      );
+      canvas.restore();
+    }
+
+    fringe(const Color(0xFFFF5FC8), const Offset(-disp, -disp),
+        Alignment.topLeft);
+    fringe(const Color(0xFF48D5FF), const Offset(disp, disp),
+        Alignment.bottomRight);
+
+    if (!enabled) return;
+
+    final t = Curves.easeOutCubic.transform(lift.value.clamp(0.0, 1.0));
+    final angle = (reduceMotion ? .12 : orbit.value) * math.pi * 2;
+
+    // At rest the edge carries an even, very thin blue→violet wash. Pointing at
+    // the card is what turns that wash into a bright comet racing around it,
+    // so a resting card never looks "selected".
+    final peak = ((isLight ? 62 : 78) + 150 * t).round().clamp(0, 255);
+    final base = .66 + (.14 - .66) * t;
+
+    Shader arc(double scale) {
+      int a(double factor) => (peak * factor * scale).round().clamp(0, 255);
+      return SweepGradient(
+        center: Alignment.center,
+        startAngle: 0,
+        endAngle: math.pi * 2,
+        colors: [
+          rimStart.withAlpha(a(base)),
+          rimStart.withAlpha(a(base + (1 - base) * .55)),
+          rimStart.withAlpha(a(1)),
+          rimEnd.withAlpha(a(1)),
+          rimEnd.withAlpha(a(base + (1 - base) * .55)),
+          rimEnd.withAlpha(a(base)),
+          rimStart.withAlpha(a(base)),
+        ],
+        stops: const [0, .05, .12, .22, .3, .38, 1],
+        transform: GradientRotation(angle),
+      ).createShader(rect);
+    }
+
+    // Soft halo first, then the crisp filament on top.
+    if (t > .01) {
+      canvas.drawRRect(
+        frame,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.4
+          ..shader = arc(.5 * t)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 + 4 * t),
+      );
+    }
+    canvas.drawRRect(
+      frame,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.1 + .8 * t
+        ..shader = arc(1),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _GlassRimLight old) {
+    return old.radius != radius ||
+        old.rimStart != rimStart ||
+        old.rimEnd != rimEnd ||
+        old.hairline != hairline ||
+        old.isLight != isLight ||
+        old.strong != strong ||
+        old.enabled != enabled ||
+        old.reduceMotion != reduceMotion;
   }
 }
 
@@ -689,7 +1269,13 @@ class _IosDynamicGlassBackdropState extends State<IosDynamicGlassBackdrop>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 16),
-    )..repeat();
+    );
+    // Parked, not repeating. These are three full-screen radial gradients: any
+    // motion here repaints the entire screen every frame, forever, even on an
+    // idle page. The drift it buys is barely perceptible behind the content, so
+    // the ambience is composed once and left alone. Call `_controller.repeat()`
+    // here to bring the movement back.
+    _controller.value = .18;
   }
 
   @override
@@ -701,8 +1287,6 @@ class _IosDynamicGlassBackdropState extends State<IosDynamicGlassBackdrop>
     if (reduceMotion) {
       _controller.stop();
       _controller.value = .18;
-    } else if (!_controller.isAnimating) {
-      _controller.repeat();
     }
   }
 
@@ -719,9 +1303,10 @@ class _IosDynamicGlassBackdropState extends State<IosDynamicGlassBackdrop>
       fit: StackFit.expand,
       children: [
         DecoratedBox(decoration: BoxDecoration(gradient: tokens.pageGradient)),
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
+        RepaintBoundary(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
             final phase = _controller.value * math.pi * 2;
             final slowPhase = phase * .72;
             final breathe = .92 + math.sin(slowPhase) * .035;
@@ -735,8 +1320,8 @@ class _IosDynamicGlassBackdropState extends State<IosDynamicGlassBackdrop>
                       scale: breathe,
                       child: _AnimatedHaze(
                         color: widget.primary,
-                        size: 330,
-                        alpha: tokens.isLight ? 35 : 46,
+                        size: 360,
+                        alpha: tokens.isLight ? 66 : 46,
                       ),
                     ),
                   ),
@@ -747,8 +1332,8 @@ class _IosDynamicGlassBackdropState extends State<IosDynamicGlassBackdrop>
                       scale: 1.04 - math.sin(phase) * .035,
                       child: _AnimatedHaze(
                         color: widget.secondary,
-                        size: 360,
-                        alpha: tokens.isLight ? 29 : 40,
+                        size: 380,
+                        alpha: tokens.isLight ? 58 : 40,
                       ),
                     ),
                   ),
@@ -761,14 +1346,15 @@ class _IosDynamicGlassBackdropState extends State<IosDynamicGlassBackdrop>
                         widget.secondary,
                         .5 + math.sin(phase) * .18,
                       )!,
-                      size: 360,
-                      alpha: tokens.isLight ? 18 : 28,
+                      size: 380,
+                      alpha: tokens.isLight ? 42 : 28,
                     ),
                   ),
                 ],
               ),
             );
-          },
+            },
+          ),
         ),
         widget.child,
       ],
@@ -795,7 +1381,9 @@ class _AnimatedHaze extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-          colors: [color.withAlpha(alpha), Colors.transparent],
+          // Fading to the same hue keeps the halo clean; fading to
+          // Colors.transparent would blend through grey.
+          colors: [color.withAlpha(alpha), color.withAlpha(0)],
         ),
       ),
     );

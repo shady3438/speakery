@@ -49,3 +49,6 @@ flutter:
 
   assets:
     - assets/images/
+
+  shaders:
+    - shaders/liquid_glass.frag

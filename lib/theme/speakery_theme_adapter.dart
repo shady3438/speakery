@@ -106,7 +106,7 @@ class SpeakeryThemeAdapter extends StatelessWidget {
                           colors: [
                             tokens.foxAccent
                                 .withAlpha(tokens.isVoxaDark ? 14 : 18),
-                            Colors.transparent,
+                            tokens.foxAccent.withAlpha(0),
                             tokens.accent
                                 .withAlpha(tokens.isVoxaDark ? 12 : 18),
                             tokens.secondaryAccent

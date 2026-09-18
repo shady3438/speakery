@@ -8,6 +8,7 @@ import '../../data/reading/reading_repository.dart';
 import '../../data/reading/reading_progress_store.dart';
 import '../../theme/speakery_theme_adapter.dart';
 import '../../theme/speakery_theme_tokens.dart';
+import '../../widgets/ios_liquid_glass.dart';
 import '../../widgets/premium_feedback.dart';
 import '../premium_screen/premium_screen.dart';
 import 'reading_result_screen.dart';
@@ -247,6 +248,7 @@ class _SegmentedTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),
       child: BackdropFilter(
@@ -256,14 +258,14 @@ class _SegmentedTabBar extends StatelessWidget {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
-            color: Colors.white.withAlpha(9),
+            color: tokens.inputSurface,
             border: Border.all(
               color: palette.start.withAlpha(36),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(30),
+                color: tokens.shadow,
                 blurRadius: 18,
                 offset: const Offset(0, 7),
               ),
@@ -291,7 +293,7 @@ class _SegmentedTabBar extends StatelessWidget {
               ],
             ),
             labelColor: Colors.white,
-            unselectedLabelColor: Colors.white.withAlpha(130),
+            unselectedLabelColor: tokens.textSecondary,
             labelStyle: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w900,
@@ -333,6 +335,7 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       child: _SolidCard(
@@ -350,11 +353,11 @@ class _TopBar extends StatelessWidget {
                 height: 42,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  color: Colors.white.withAlpha(10),
-                  border: Border.all(color: Colors.white.withAlpha(18)),
+                  color: tokens.inputSurface,
+                  border: Border.all(color: tokens.border),
                 ),
-                child: const Icon(Icons.arrow_back_rounded,
-                    color: Colors.white, size: 19),
+                child: Icon(Icons.arrow_back_rounded,
+                    color: tokens.textPrimary, size: 19),
               ),
             ),
             const SizedBox(width: 12),
@@ -381,10 +384,8 @@ class _TopBar extends StatelessWidget {
                                   end: Alignment.bottomRight,
                                   colors: [palette.start, palette.end],
                                 ),
-                          color: lesson.isPremium
-                              ? Colors.white.withAlpha(8)
-                              : null,
-                          border: Border.all(color: Colors.white.withAlpha(14)),
+                          color: lesson.isPremium ? tokens.inputSurface : null,
+                          border: Border.all(color: tokens.border),
                           boxShadow: lesson.isPremium
                               ? null
                               : [
@@ -397,7 +398,9 @@ class _TopBar extends StatelessWidget {
                         ),
                         child: Icon(
                           lesson.isPremium ? Icons.lock_rounded : lesson.icon,
-                          color: Colors.white,
+                          color: lesson.isPremium
+                              ? tokens.textPrimary
+                              : Colors.white,
                           size: 18,
                         ),
                       ),
@@ -407,8 +410,8 @@ class _TopBar extends StatelessWidget {
                           lesson.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: tokens.textPrimary,
                             fontSize: 17,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.3,
@@ -433,7 +436,7 @@ class _TopBar extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white.withAlpha(160),
+                      color: tokens.textSecondary,
                       fontSize: 12.2,
                       height: 1.32,
                       fontWeight: FontWeight.w600,
@@ -561,6 +564,7 @@ class _ReadHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _SolidCard(
       radius: 24,
       padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
@@ -598,8 +602,8 @@ class _ReadHeroCard extends StatelessWidget {
                   t('Read with focus', 'Odaklanarak oku'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.35,
@@ -614,7 +618,7 @@ class _ReadHeroCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withAlpha(150),
+                    color: tokens.textSecondary,
                     fontSize: 12.1,
                     height: 1.35,
                     fontWeight: FontWeight.w600,
@@ -654,6 +658,7 @@ class _ReadingPaperHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Row(
       children: [
         Container(
@@ -676,8 +681,8 @@ class _ReadingPaperHeader extends StatelessWidget {
                 lesson.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: tokens.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -0.25,
@@ -690,7 +695,7 @@ class _ReadingPaperHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.white.withAlpha(135),
+                  color: tokens.textMuted,
                   fontSize: 11.7,
                   fontWeight: FontWeight.w600,
                 ),
@@ -714,12 +719,13 @@ class _ParagraphBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white.withAlpha(6),
-        border: Border.all(color: Colors.white.withAlpha(10)),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -747,8 +753,8 @@ class _ParagraphBlock extends StatelessWidget {
           Expanded(
             child: Text(
               paragraph.text,
-              style: const TextStyle(
-                color: Color(0xFFF2EFFF),
+              style: TextStyle(
+                color: tokens.textPrimary,
                 fontSize: 15.4,
                 height: 1.66,
                 fontWeight: FontWeight.w500,
@@ -779,6 +785,7 @@ class _WarmUpCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final showTurkish = !isEnglish ||
         lesson.level == ReadingLevel.a1 ||
         lesson.level == ReadingLevel.a2;
@@ -798,8 +805,8 @@ class _WarmUpCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   lesson.orientationEnglish,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 13,
                     height: 1.38,
                     fontWeight: FontWeight.w700,
@@ -813,7 +820,7 @@ class _WarmUpCard extends StatelessWidget {
             Text(
               lesson.orientationTurkish!,
               style: TextStyle(
-                color: Colors.white.withAlpha(148),
+                color: tokens.textSecondary,
                 fontSize: 12,
                 height: 1.38,
                 fontWeight: FontWeight.w600,
@@ -838,7 +845,7 @@ class _WarmUpCard extends StatelessWidget {
                     child: Text(
                       lesson.readingTipTurkish!,
                       style: TextStyle(
-                        color: Colors.white.withAlpha(155),
+                        color: tokens.textSecondary,
                         fontSize: 11.8,
                         height: 1.38,
                         fontWeight: FontWeight.w600,
@@ -1173,6 +1180,7 @@ class _TaskHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _SolidCard(
       radius: 24,
       padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
@@ -1206,8 +1214,8 @@ class _TaskHeader extends StatelessWidget {
               t('Your task', 'Görevin'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: tokens.textPrimary,
                 fontSize: 17,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.35,
@@ -1235,6 +1243,7 @@ class _TaskPromptCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _SolidCard(
       radius: 24,
       padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
@@ -1252,7 +1261,7 @@ class _TaskPromptCard extends StatelessWidget {
             child: Text(
               prompt,
               style: TextStyle(
-                color: Colors.white.withAlpha(185),
+                color: tokens.textPrimary,
                 fontSize: 13.2,
                 height: 1.45,
                 fontWeight: FontWeight.w700,
@@ -1280,6 +1289,7 @@ class _WritingBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
@@ -1297,7 +1307,7 @@ class _WritingBox extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 palette.start.withAlpha(hasText ? 105 : 58),
-                Colors.white.withAlpha(18),
+                tokens.border,
                 palette.end.withAlpha(hasText ? 82 : 34),
               ],
             ),
@@ -1305,7 +1315,7 @@ class _WritingBox extends StatelessWidget {
               BoxShadow(
                 color: hasText
                     ? palette.start.withAlpha(30)
-                    : Colors.black.withAlpha(34),
+                    : tokens.shadow,
                 blurRadius: 24,
                 offset: const Offset(0, 10),
               ),
@@ -1318,8 +1328,12 @@ class _WritingBox extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF111827).withAlpha(228),
-                  const Color(0xFF0B1020).withAlpha(238),
+                  tokens.isLight
+                      ? tokens.glassStrong
+                      : const Color(0xFF111827).withAlpha(228),
+                  tokens.isLight
+                      ? tokens.elevated
+                      : const Color(0xFF0B1020).withAlpha(238),
                   palette.start.withAlpha(hasText ? 18 : 10),
                 ],
               ),
@@ -1350,8 +1364,8 @@ class _WritingBox extends StatelessWidget {
                       const SizedBox(width: 9),
                       Text(
                         t('Your response', 'Cevabın'),
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: tokens.textPrimary,
                           fontSize: 13.5,
                           fontWeight: FontWeight.w900,
                           letterSpacing: -0.1,
@@ -1377,7 +1391,7 @@ class _WritingBox extends StatelessWidget {
                           style: TextStyle(
                             color: hasText
                                 ? palette.start.withAlpha(235)
-                                : Colors.white.withAlpha(120),
+                                : tokens.textMuted,
                             fontSize: 10.5,
                             fontWeight: FontWeight.w900,
                           ),
@@ -1391,9 +1405,9 @@ class _WritingBox extends StatelessWidget {
                   margin: const EdgeInsets.fromLTRB(14, 10, 14, 14),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    color: const Color(0xFF070B16).withAlpha(135),
+                    color: tokens.inputSurface,
                     border: Border.all(
-                      color: Colors.white.withAlpha(10),
+                      color: tokens.border,
                     ),
                   ),
                   child: TextField(
@@ -1402,8 +1416,8 @@ class _WritingBox extends StatelessWidget {
                     minLines: 6,
                     textInputAction: TextInputAction.newline,
                     cursorColor: palette.start,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       height: 1.55,
@@ -1414,7 +1428,7 @@ class _WritingBox extends StatelessWidget {
                         'Kısa cevabını buraya yaz...',
                       ),
                       hintStyle: TextStyle(
-                        color: Colors.white.withAlpha(82),
+                        color: tokens.textMuted.withAlpha(150),
                         fontWeight: FontWeight.w600,
                         fontSize: 13.2,
                       ),
@@ -1462,6 +1476,7 @@ class _CompleteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _TapScale(
       onTap: onTap ?? () {},
       child: AnimatedContainer(
@@ -1478,7 +1493,7 @@ class _CompleteButton extends StatelessWidget {
                   end: Alignment.bottomRight,
                   colors: [palette.start, palette.end],
                 ),
-          color: done ? Colors.white.withAlpha(10) : null,
+          color: done ? tokens.inputSurface : null,
           border: Border.all(
             color: done
                 ? const Color(0xFF22C55E).withAlpha(55)
@@ -1499,7 +1514,7 @@ class _CompleteButton extends StatelessWidget {
           children: [
             Icon(
               done ? Icons.check_circle_rounded : Icons.flag_rounded,
-              color: done ? const Color(0xFF22C55E) : Colors.white,
+              color: done ? tokens.success : Colors.white,
               size: 18,
             ),
             const SizedBox(width: 8),
@@ -1508,7 +1523,7 @@ class _CompleteButton extends StatelessWidget {
                   ? t('Completed', 'Tamamlandı')
                   : t('Finish Reading', 'Okumayı Bitir'),
               style: TextStyle(
-                color: done ? const Color(0xFF22C55E) : Colors.white,
+                color: done ? tokens.success : Colors.white,
                 fontSize: 14,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.1,
@@ -1577,6 +1592,7 @@ class _QuestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final options = question.options;
     final hasOptions = options.isNotEmpty;
     final isAnswered = chosenAnswer != null;
@@ -1606,13 +1622,13 @@ class _QuestionCard extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
-                      color: Colors.white.withAlpha(7),
-                      border: Border.all(color: Colors.white.withAlpha(14)),
+                      color: tokens.inputSurface,
+                      border: Border.all(color: tokens.border),
                     ),
                     child: Text(
                       revealed ? t('Hide', 'Gizle') : t('Answer', 'Cevap'),
                       style: TextStyle(
-                        color: Colors.white.withAlpha(160),
+                        color: tokens.textSecondary,
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                       ),
@@ -1626,8 +1642,8 @@ class _QuestionCard extends StatelessWidget {
           // Question text
           Text(
             question.question,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: tokens.textPrimary,
               fontSize: 13.5,
               height: 1.38,
               fontWeight: FontWeight.w800,
@@ -1686,6 +1702,7 @@ class _ExplanationBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Container(
@@ -1693,8 +1710,8 @@ class _ExplanationBlock extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
-          color: Colors.white.withAlpha(6),
-          border: Border.all(color: Colors.white.withAlpha(14)),
+          color: tokens.inputSurface,
+          border: Border.all(color: tokens.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1702,7 +1719,7 @@ class _ExplanationBlock extends StatelessWidget {
             Text(
               explanation,
               style: TextStyle(
-                color: Colors.white.withAlpha(172),
+                color: tokens.textSecondary,
                 fontSize: 12.2,
                 height: 1.42,
                 fontWeight: FontWeight.w600,
@@ -1770,6 +1787,7 @@ class _OptionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final isCorrect = isAnswered && label == correctAnswer;
     final isWrongChosen =
         isAnswered && label == chosenAnswer && chosenAnswer != correctAnswer;
@@ -1784,9 +1802,9 @@ class _OptionRow extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
-          color: _bg(isCorrect, isWrongChosen),
+          color: _bg(tokens, isCorrect, isWrongChosen),
           border: Border.all(
-            color: _border(isCorrect, isWrongChosen),
+            color: _border(tokens, isCorrect, isWrongChosen),
             width: isCorrect || isWrongChosen ? 1.2 : 1,
           ),
         ),
@@ -1799,14 +1817,14 @@ class _OptionRow extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _letterBg(isCorrect, isWrongChosen),
+                color: _letterBg(tokens, isCorrect, isWrongChosen),
                 border: Border.all(
-                    color: _border(isCorrect, isWrongChosen).withAlpha(80)),
+                    color: _border(tokens, isCorrect, isWrongChosen).withAlpha(80)),
               ),
               child: Text(
                 displayLetter,
                 style: TextStyle(
-                  color: _letterColor(isCorrect, isWrongChosen),
+                  color: _letterColor(tokens, isCorrect, isWrongChosen),
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                 ),
@@ -1817,8 +1835,8 @@ class _OptionRow extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  color: Colors.white.withAlpha(
-                      isAnswered && !isCorrect && !isWrongChosen ? 170 : 235),
+                  color: _optionInk(tokens,
+                      isAnswered && !isCorrect && !isWrongChosen ),
                   fontSize: 12.5,
                   height: 1.3,
                   fontWeight: FontWeight.w700,
@@ -1837,28 +1855,33 @@ class _OptionRow extends StatelessWidget {
     );
   }
 
-  Color _bg(bool correct, bool wrong) {
+  // An answered option that is neither the correct one nor the one the
+  // learner picked steps back; everything else reads at full strength.
+  Color _optionInk(SpeakeryThemeTokens tokens, bool dimmed) =>
+      dimmed ? tokens.textSecondary : tokens.textPrimary;
+
+  Color _bg(SpeakeryThemeTokens tokens, bool correct, bool wrong) {
     if (correct) return const Color(0xFF22C55E).withAlpha(15);
     if (wrong) return const Color(0xFFFF5B8A).withAlpha(12);
-    return Colors.white.withAlpha(6);
+    return tokens.inputSurface;
   }
 
-  Color _border(bool correct, bool wrong) {
+  Color _border(SpeakeryThemeTokens tokens, bool correct, bool wrong) {
     if (correct) return const Color(0xFF22C55E).withAlpha(60);
     if (wrong) return const Color(0xFFFF5B8A).withAlpha(55);
-    return Colors.white.withAlpha(13);
+    return tokens.border;
   }
 
-  Color _letterBg(bool correct, bool wrong) {
+  Color _letterBg(SpeakeryThemeTokens tokens, bool correct, bool wrong) {
     if (correct) return const Color(0xFF22C55E).withAlpha(25);
     if (wrong) return const Color(0xFFFF5B8A).withAlpha(20);
-    return Colors.white.withAlpha(8);
+    return tokens.inputSurface;
   }
 
-  Color _letterColor(bool correct, bool wrong) {
+  Color _letterColor(SpeakeryThemeTokens tokens, bool correct, bool wrong) {
     if (correct) return const Color(0xFF22C55E);
     if (wrong) return const Color(0xFFFF5B8A);
-    return Colors.white.withAlpha(160);
+    return tokens.textSecondary;
   }
 }
 
@@ -1881,6 +1904,7 @@ class _GlossCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final meaning = isEnglish
         ? gloss.meaningEnglish
         : (gloss.meaningTurkish ?? gloss.meaningEnglish);
@@ -1907,8 +1931,8 @@ class _GlossCard extends StatelessWidget {
                 ),
                 child: Text(
                   gloss.word,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1921,7 +1945,7 @@ class _GlossCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withAlpha(185),
+                    color: tokens.textSecondary,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1934,13 +1958,13 @@ class _GlossCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: Colors.white.withAlpha(5),
-              border: Border.all(color: Colors.white.withAlpha(10)),
+              color: tokens.inputSurface,
+              border: Border.all(color: tokens.border),
             ),
             child: Text(
               gloss.example,
               style: TextStyle(
-                color: Colors.white.withAlpha(162),
+                color: tokens.textSecondary,
                 fontSize: 12,
                 height: 1.42,
                 fontWeight: FontWeight.w600,
@@ -1973,6 +1997,7 @@ class _ReviewWordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final meaning = isEnglish
         ? item.meaningEnglish
         : (item.meaningTurkish ?? item.meaningEnglish);
@@ -1991,8 +2016,8 @@ class _ReviewWordCard extends StatelessWidget {
               const SizedBox(width: 9),
               Text(
                 item.word,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: tokens.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
                 ),
@@ -2004,7 +2029,7 @@ class _ReviewWordCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withAlpha(185),
+                    color: tokens.textSecondary,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -2016,7 +2041,7 @@ class _ReviewWordCard extends StatelessWidget {
           Text(
             item.originalSentence,
             style: TextStyle(
-              color: Colors.white.withAlpha(175),
+              color: tokens.textPrimary,
               fontSize: 12,
               height: 1.45,
               fontWeight: FontWeight.w700,
@@ -2026,7 +2051,7 @@ class _ReviewWordCard extends StatelessWidget {
           Text(
             item.newExampleSentence,
             style: TextStyle(
-              color: Colors.white.withAlpha(138),
+              color: tokens.textMuted,
               fontSize: 12,
               height: 1.42,
               fontWeight: FontWeight.w600,
@@ -2047,6 +2072,7 @@ class _ProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),
       child: Stack(
@@ -2054,7 +2080,7 @@ class _ProgressBar extends StatelessWidget {
           Container(
               height: 5,
               width: double.infinity,
-              color: Colors.white.withAlpha(10)),
+              color: tokens.border),
           AnimatedFractionallySizedBox(
             duration: const Duration(milliseconds: 450),
             curve: Curves.easeOutCubic,
@@ -2087,13 +2113,14 @@ class _TabTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: tokens.textPrimary,
             fontSize: 17.5,
             fontWeight: FontWeight.w900,
             letterSpacing: -0.3,
@@ -2103,7 +2130,7 @@ class _TabTitle extends StatelessWidget {
         Text(
           subtitle,
           style: TextStyle(
-            color: Colors.white.withAlpha(155),
+            color: tokens.textSecondary,
             fontSize: 12.2,
             height: 1.35,
             fontWeight: FontWeight.w600,
@@ -2157,6 +2184,7 @@ class _TypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
@@ -2166,8 +2194,8 @@ class _TypeChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: tokens.textPrimary,
           fontSize: 10.2,
           fontWeight: FontWeight.w800,
         ),
@@ -2221,22 +2249,23 @@ class _MetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        color: Colors.white.withAlpha(7),
-        border: Border.all(color: Colors.white.withAlpha(12)),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: Colors.white.withAlpha(135)),
+          Icon(icon, size: 12, color: tokens.textMuted),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withAlpha(148),
+              color: tokens.textSecondary,
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
             ),
@@ -2257,6 +2286,7 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
@@ -2265,11 +2295,11 @@ class _StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         color: done
             ? const Color(0xFF22C55E).withAlpha(22)
-            : Colors.white.withAlpha(7),
+            : tokens.inputSurface,
         border: Border.all(
           color: done
               ? const Color(0xFF22C55E).withAlpha(55)
-              : Colors.white.withAlpha(13),
+              : tokens.border,
         ),
       ),
       child: Row(
@@ -2278,14 +2308,14 @@ class _StatusPill extends StatelessWidget {
           Icon(
             done ? Icons.check_rounded : Icons.radio_button_unchecked_rounded,
             size: 11,
-            color: done ? const Color(0xFF22C55E) : Colors.white.withAlpha(130),
+            color: done ? tokens.success : tokens.textMuted,
           ),
           const SizedBox(width: 4),
           Text(
             done ? t('Done', 'Bitti') : t('Active', 'Aktif'),
             style: TextStyle(
               color:
-                  done ? const Color(0xFF22C55E) : Colors.white.withAlpha(140),
+                  done ? tokens.success : tokens.textSecondary,
               fontSize: 10,
               fontWeight: FontWeight.w900,
             ),
@@ -2311,6 +2341,7 @@ class _SmallEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _SolidCard(
       radius: 22,
       padding: const EdgeInsets.all(18),
@@ -2322,8 +2353,8 @@ class _SmallEmpty extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: tokens.textPrimary,
               fontSize: 14.5,
               fontWeight: FontWeight.w900,
             ),
@@ -2333,7 +2364,7 @@ class _SmallEmpty extends StatelessWidget {
             subtitle,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withAlpha(148),
+              color: tokens.textSecondary,
               fontSize: 12,
               height: 1.38,
               fontWeight: FontWeight.w600,
@@ -2355,6 +2386,7 @@ class _EmptyLocked extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final palette = _paletteForLevel(level);
     return Center(
       child: Padding(
@@ -2387,8 +2419,8 @@ class _EmptyLocked extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                 t('Premium content', 'Premium içerik'),
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: tokens.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                 ),
@@ -2401,7 +2433,7 @@ class _EmptyLocked extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withAlpha(158),
+                  color: tokens.textSecondary,
                   fontSize: 12.5,
                   height: 1.38,
                   fontWeight: FontWeight.w600,
@@ -2412,8 +2444,8 @@ class _EmptyLocked extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: palette.start,
+                    backgroundColor: tokens.isLight ? palette.start : Colors.white,
+                    foregroundColor: tokens.isLight ? Colors.white : palette.start,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
@@ -2455,6 +2487,7 @@ class _PaperSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
       decoration: BoxDecoration(
@@ -2464,14 +2497,14 @@ class _PaperSheet extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             tint.withAlpha(26),
-            Colors.white.withAlpha(7),
+            tokens.glass,
             tint.withAlpha(10),
           ],
         ),
         border: Border.all(color: tint.withAlpha(55), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(44),
+            color: tokens.shadow,
             blurRadius: 26,
             offset: const Offset(0, 12),
           ),
@@ -2507,31 +2540,10 @@ class _SolidCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SpeakeryThemeTokens.of(context);
-    return Container(
+    return IosLiquidGlassSurface(
+      radius: radius,
       padding: padding,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        color: tokens.isLight
-            ? tokens.elevatedSurface
-            : Colors.white.withAlpha(10),
-        border: Border.all(
-          color: tokens.isLight ? tokens.border : accentColor.withAlpha(36),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: tokens.shadow.withAlpha(tokens.isLight ? 28 : 38),
-            blurRadius: 22,
-            offset: const Offset(0, 9),
-          ),
-          BoxShadow(
-            color: accentColor.withAlpha(10),
-            blurRadius: 16,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
+      accent: accentColor,
       child: child,
     );
   }

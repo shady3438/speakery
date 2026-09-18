@@ -12,6 +12,7 @@ import 'package:speakery/widgets/ios_liquid_glass.dart';
 import 'package:speakery/widgets/premium_feedback.dart';
 
 import 'grammar_display_model.dart';
+import 'grammar_practice_modes.dart';
 import 'grammar_ui_text.dart';
 
 const int _grammarLessonRewardXP = 15;
@@ -547,6 +548,10 @@ class _GrammarSkillScreenState extends State<GrammarSkillScreen> {
   late String selectedLevel;
   final List<String> levels = const ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
+  /// How a tapped topic should open. Vocabulary and Arena both let learners
+  /// pick how to work the same material; this is grammar's version of that.
+  GrammarPracticeMode _mode = GrammarPracticeMode.lesson;
+
   @override
   void initState() {
     super.initState();
@@ -589,10 +594,14 @@ class _GrammarSkillScreenState extends State<GrammarSkillScreen> {
               _hero(),
               const SizedBox(height: 14),
               _levelToggle(),
+              const SizedBox(height: 10),
+              _modeToggle(),
               const SizedBox(height: 16),
               _sectionTitle(),
               const SizedBox(height: 10),
-              if (topics.isEmpty)
+              if (_mode == GrammarPracticeMode.review)
+                _mixedReviewCard()
+              else if (topics.isEmpty)
                 _GrammarEmptyState(
                     color: palette.start,
                     isEnglish: _speakeryUseEnglishUi(context, widget.isEnglish))
@@ -773,6 +782,116 @@ class _GrammarSkillScreenState extends State<GrammarSkillScreen> {
     );
   }
 
+  Widget _modeToggle() {
+    return IosLiquidPillSelector(
+      items: [
+        IosPillItem(t('Lesson', 'Ders'), icon: Icons.auto_stories_rounded),
+        IosPillItem(t('Cards', 'Kartlar'), icon: Icons.style_rounded),
+        IosPillItem(t('Drill', 'Alıştırma'), icon: Icons.bolt_rounded),
+        IosPillItem(t('Mixed', 'Karışık'), icon: Icons.shuffle_rounded),
+      ],
+      selectedIndex: GrammarPracticeMode.values.indexOf(_mode),
+      startColor: palette.start,
+      endColor: palette.end,
+      onChanged: (index) => setState(
+        () => _mode = GrammarPracticeMode.values[index],
+      ),
+    );
+  }
+
+  String get _sectionHeading => switch (_mode) {
+        GrammarPracticeMode.lesson => t('Lessons', 'Dersler'),
+        GrammarPracticeMode.cards => t('Rule cards', 'Kural kartları'),
+        GrammarPracticeMode.drill => t('Practice', 'Alıştırma'),
+        GrammarPracticeMode.review => t('Mixed review', 'Karışık tekrar'),
+      };
+
+  String get _sectionHint => switch (_mode) {
+        GrammarPracticeMode.lesson => t('learn in order', 'sırayla öğren'),
+        GrammarPracticeMode.cards => t('flip to recall', 'çevir ve hatırla'),
+        GrammarPracticeMode.drill => t('questions only', 'sadece sorular'),
+        GrammarPracticeMode.review => t('whole level', 'tüm seviye'),
+      };
+
+  /// Every question in the level, shuffled — the one mode that is not tied to
+  /// a single topic, so it gets a start card instead of the topic list.
+  List<GrammarQuizQuestion> _levelQuestions() {
+    final all = <GrammarQuizQuestion>[];
+    for (final topic in topics) {
+      all.addAll(GrammarRepository.lessonForTopic(topic).quiz);
+    }
+    all.shuffle();
+    return all.take(15).toList(growable: false);
+  }
+
+  Widget _mixedReviewCard() {
+    final tokens = SpeakeryThemeTokens.of(context);
+    final questions = _levelQuestions();
+
+    return GestureDetector(
+      onTap: questions.isEmpty ? null : () => _openMixedReview(questions),
+      child: IosLiquidGlassSurface(
+        radius: 26,
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+        accent: palette.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    gradient: LinearGradient(
+                      colors: [palette.start, palette.end],
+                    ),
+                  ),
+                  child: const Icon(Icons.shuffle_rounded,
+                      color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t('$selectedLevel mixed review',
+                            '$selectedLevel karışık tekrar'),
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        questions.isEmpty
+                            ? t('No questions at this level yet.',
+                                'Bu seviyede henüz soru yok.')
+                            : t('${questions.length} questions from ${topics.length} topics.',
+                                '${topics.length} konudan ${questions.length} soru.'),
+                        style: TextStyle(
+                          color: tokens.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_rounded,
+                    size: 18, color: tokens.textSecondary),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _sectionTitle() {
     final tokens = SpeakeryThemeTokens.of(context);
     final accent = _grammarAccentText(tokens, palette.start);
@@ -780,7 +899,7 @@ class _GrammarSkillScreenState extends State<GrammarSkillScreen> {
       children: [
         Expanded(
           child: Text(
-            t('Lessons', 'Dersler'),
+            _sectionHeading,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -795,7 +914,7 @@ class _GrammarSkillScreenState extends State<GrammarSkillScreen> {
           child: Align(
             alignment: Alignment.centerRight,
             child: Text(
-              t('learn in order', 'sırayla öğren'),
+              _sectionHint,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -807,18 +926,68 @@ class _GrammarSkillScreenState extends State<GrammarSkillScreen> {
     );
   }
 
-  Future<void> _openLesson(int topicIndex) async {
+  Future<void> _openMixedReview(List<GrammarQuizQuestion> questions) async {
+    final english = _speakeryUseEnglishUi(context, widget.isEnglish);
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => _GrammarLessonPlayerScreen(
-          level: selectedLevel,
-          initialTopicIndex: topicIndex,
-          topics: topics,
-          palette: palette,
-          isEnglish: _speakeryUseEnglishUi(context, widget.isEnglish),
+        builder: (_) => GrammarDrillScreen(
+          title: t('$selectedLevel mixed review',
+              '$selectedLevel karışık tekrar'),
+          subtitle: t('Across the level', 'Seviye geneli'),
+          questions: questions,
+          start: palette.start,
+          end: palette.end,
+          isEnglish: english,
         ),
       ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  /// Opens the tapped topic the way the selected mode asks for.
+  Future<void> _openLesson(int topicIndex) async {
+    final english = _speakeryUseEnglishUi(context, widget.isEnglish);
+    final topic = topics[topicIndex];
+
+    Widget destination() {
+      switch (_mode) {
+        case GrammarPracticeMode.cards:
+          return GrammarCardsScreen(
+            title: topic.title,
+            cards: grammarCardsFor(
+              topic,
+              GrammarRepository.lessonForTopic(topic),
+              isEnglish: english,
+            ),
+            start: palette.start,
+            end: palette.end,
+            isEnglish: english,
+          );
+        case GrammarPracticeMode.drill:
+          return GrammarDrillScreen(
+            title: topic.title,
+            subtitle: t('Practice', 'Alıştırma'),
+            questions: GrammarRepository.lessonForTopic(topic).quiz,
+            start: palette.start,
+            end: palette.end,
+            isEnglish: english,
+          );
+        case GrammarPracticeMode.lesson:
+        case GrammarPracticeMode.review:
+          return _GrammarLessonPlayerScreen(
+            level: selectedLevel,
+            initialTopicIndex: topicIndex,
+            topics: topics,
+            palette: palette,
+            isEnglish: english,
+          );
+      }
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => destination()),
     );
     if (mounted) setState(() {});
   }
@@ -1138,7 +1307,7 @@ class _GrammarLessonPlayerScreenState
                           end: Alignment.centerRight,
                           colors: [
                             palette.start.withAlpha(16),
-                            Colors.transparent,
+                            palette.start.withAlpha(0),
                             palette.end.withAlpha(7),
                           ],
                           stops: const [0.0, 0.58, 1.0],
@@ -4231,42 +4400,12 @@ class _PremiumBigIdeaCard extends StatelessWidget {
     final tokens = SpeakeryThemeTokens.of(context);
     final accent = _grammarAccentText(tokens, color);
     final model = right.trim().isEmpty ? sample : right;
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 34,
+      blur: 26,
+      strong: true,
+      accent: color,
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 17),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(34),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: tokens.isLight
-              ? _grammarLightGlass(color, strong: true)
-              : [
-                  Colors.white.withAlpha(13),
-                  color.withAlpha(38),
-                  const Color(0xFF07111E).withAlpha(242),
-                  Colors.black.withAlpha(26),
-                ],
-          stops: tokens.isLight ? null : const [0, .22, .72, 1],
-        ),
-        border: Border.all(
-          color: tokens.isLight
-              ? _grammarGlassBorder(tokens, accent: color, strong: true)
-              : Colors.white.withAlpha(16),
-        ),
-        boxShadow: [
-          BoxShadow(
-              color: color.withAlpha(24),
-              blurRadius: 34,
-              offset: const Offset(0, 18)),
-          BoxShadow(
-              color: tokens.isLight
-                  ? const Color(0xFF334155).withAlpha(18)
-                  : Colors.black.withAlpha(36),
-              blurRadius: 18,
-              offset: const Offset(0, 10))
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -4495,19 +4634,16 @@ class _RuleCheckCardState extends State<_RuleCheckCard> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final localOptions = options;
     final checked = revealed && selected != null;
     final correctOption = _cleanOptionSentence(widget.right);
     final correct = _sameCleanSentence(selected, correctOption);
 
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 27,
+      accent: widget.color,
       padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(27),
-        color: Colors.white.withAlpha(5),
-        border: Border.all(color: widget.color.withAlpha(24)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -4536,9 +4672,9 @@ class _RuleCheckCardState extends State<_RuleCheckCard> {
                     const SizedBox(height: 2),
                     Text(
                         t('Which sentence follows the rule?',
-                            'Hangi c�mle kurala uyuyor?'),
+                            'Hangi cümle kurala uyuyor?'),
                         style: TextStyle(
-                            color: Colors.white.withAlpha(122),
+                            color: tokens.textSecondary,
                             fontSize: 10.9,
                             fontWeight: FontWeight.w700)),
                   ],
@@ -4566,7 +4702,7 @@ class _RuleCheckCardState extends State<_RuleCheckCard> {
                       ? const Color(0xFFFF6B6B)
                       : isSelected
                           ? widget.color
-                          : Colors.white.withAlpha(44);
+                          : tokens.border;
               return Padding(
                 padding: EdgeInsets.only(
                     bottom: index == localOptions.length - 1 ? 0 : 8),
@@ -4580,7 +4716,7 @@ class _RuleCheckCardState extends State<_RuleCheckCard> {
                       borderRadius: BorderRadius.circular(19),
                       color: isSelected
                           ? widget.color.withAlpha(17)
-                          : Colors.black.withAlpha(12),
+                          : tokens.inputSurface,
                       border: Border.all(
                           color: stateColor
                               .withAlpha(checked || isSelected ? 160 : 72)),
@@ -4609,7 +4745,7 @@ class _RuleCheckCardState extends State<_RuleCheckCard> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                color: Colors.white.withAlpha(184),
+                                color: tokens.textPrimary,
                                 fontSize: 12.4,
                                 height: 1.25,
                                 fontWeight: FontWeight.w800),
@@ -4676,39 +4812,13 @@ class _TeacherLogicCard extends StatelessWidget {
     final visibleBullets =
         safeBullets.take(isA1 ? 2 : 2).toList(growable: false);
 
-    return Container(
-      width: double.infinity,
+    return ConstrainedBox(
       constraints: BoxConstraints(minHeight: isA1 ? 172 : 0),
+      child: IosLiquidGlassSurface(
+      radius: isA1 ? 34 : 30,
+      strong: isA1,
+      accent: color,
       padding: EdgeInsets.fromLTRB(20, isA1 ? 20 : 17, 20, isA1 ? 22 : 18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(isA1 ? 34 : 30),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: tokens.isLight
-              ? _grammarLightGlass(color, strong: isA1)
-              : [
-                  color.withAlpha(isA1 ? 42 : 28),
-                  const Color(0xFF08111F).withAlpha(240),
-                  Colors.white.withAlpha(isA1 ? 12 : 8),
-                ],
-        ),
-        border: Border.all(
-          color: tokens.isLight
-              ? _grammarGlassBorder(
-                  tokens,
-                  accent: color,
-                  strong: isA1,
-                )
-              : color.withAlpha(isA1 ? 60 : 44),
-        ),
-        boxShadow: [
-          BoxShadow(
-              color: color.withAlpha(isA1 ? 28 : 18),
-              blurRadius: isA1 ? 38 : 30,
-              offset: Offset(0, isA1 ? 18 : 16)),
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -4723,8 +4833,7 @@ class _TeacherLogicCard extends StatelessWidget {
                   border: Border.all(color: color.withAlpha(isA1 ? 58 : 44)),
                 ),
                 child: Icon(Icons.school_rounded,
-                    color:
-                        tokens.isLight ? accent : (isA1 ? Colors.white : color),
+                    color: tokens.isLight ? accent : color,
                     size: isA1 ? 24 : 21),
               ),
               SizedBox(width: isA1 ? 13 : 11),
@@ -4734,9 +4843,7 @@ class _TeacherLogicCard extends StatelessWidget {
                   children: [
                     Text(t('Teacher note', 'Öğretmen notu'),
                         style: TextStyle(
-                            color: tokens.isLight
-                                ? tokens.textPrimary
-                                : (isA1 ? Colors.white : color),
+                            color: tokens.textPrimary,
                             fontSize: isA1 ? 17.2 : 13.4,
                             fontWeight: FontWeight.w900)),
                     if (showContent) ...[
@@ -4787,6 +4894,7 @@ class _TeacherLogicCard extends StatelessWidget {
           }),
         ],
       ),
+      ),
     );
   }
 }
@@ -4827,35 +4935,11 @@ class _QuickLookPanel extends StatelessWidget {
           child: child,
         ),
       ),
-      child: Container(
-        width: double.infinity,
+      child: IosLiquidGlassSurface(
+        radius: 34,
+        strong: true,
+        accent: color,
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 19),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(34),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: tokens.isLight
-                ? _grammarLightGlass(color, strong: true)
-                : [
-                    Colors.white.withAlpha(10),
-                    color.withAlpha(38),
-                    const Color(0xFF07111E).withAlpha(238),
-                    Colors.white.withAlpha(10),
-                  ],
-            stops: tokens.isLight ? null : const [0, .2, .74, 1],
-          ),
-          border: Border.all(
-              color: tokens.isLight
-                  ? _grammarGlassBorder(tokens, accent: color, strong: true)
-                  : Colors.white.withAlpha(15)),
-          boxShadow: [
-            BoxShadow(
-                color: color.withAlpha(22),
-                blurRadius: 34,
-                offset: const Offset(0, 16)),
-          ],
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -4870,7 +4954,7 @@ class _QuickLookPanel extends StatelessWidget {
                     border: Border.all(color: color.withAlpha(56)),
                   ),
                   child: Icon(Icons.auto_awesome_rounded,
-                      color: tokens.isLight ? accent : Colors.white, size: 18),
+                      color: accent, size: 18),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -5191,6 +5275,7 @@ class _PremiumFocusPointCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _TapScale(
       onTap: onTap,
       child: AnimatedContainer(
@@ -5200,10 +5285,9 @@ class _PremiumFocusPointCard extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(23),
-          color: expanded ? color.withAlpha(13) : Colors.white.withAlpha(5),
+          color: expanded ? color.withAlpha(13) : tokens.inputSurface,
           border: Border.all(
-              color:
-                  expanded ? color.withAlpha(33) : Colors.white.withAlpha(10)),
+              color: expanded ? color.withAlpha(33) : tokens.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -5221,8 +5305,8 @@ class _PremiumFocusPointCard extends StatelessWidget {
                     border: Border.all(color: color.withAlpha(31)),
                   ),
                   child: Text(number,
-                      style: const TextStyle(
-                          color: Colors.white,
+                      style: TextStyle(
+                          color: tokens.textPrimary,
                           fontSize: 11,
                           fontWeight: FontWeight.w900)),
                 ),
@@ -5234,7 +5318,7 @@ class _PremiumFocusPointCard extends StatelessWidget {
                       Text(
                         text,
                         style: TextStyle(
-                            color: Colors.white.withAlpha(184),
+                            color: tokens.textPrimary,
                             fontSize: 12.9,
                             height: 1.34,
                             fontWeight: FontWeight.w800),
@@ -5245,7 +5329,7 @@ class _PremiumFocusPointCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                color: Colors.white.withAlpha(96),
+                                color: tokens.textMuted,
                                 fontSize: 11.2,
                                 fontWeight: FontWeight.w700)),
                       ],
@@ -5253,12 +5337,12 @@ class _PremiumFocusPointCard extends StatelessWidget {
                   ),
                 ),
                 Icon(expanded ? Icons.remove_rounded : Icons.add_rounded,
-                    color: Colors.white.withAlpha(120), size: 19),
+                    color: tokens.textSecondary, size: 19),
               ],
             ),
             if (expanded) ...[
               const SizedBox(height: 11),
-              Container(height: 1, color: Colors.white.withAlpha(9)),
+              Container(height: 1, color: tokens.border),
               const SizedBox(height: 10),
               _CompactInsightGrid(
                 color: color,
@@ -5316,12 +5400,13 @@ class _SmallInsightPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.black.withAlpha(16),
+        color: tokens.inputSurface,
         border: Border.all(color: color.withAlpha(28)),
       ),
       child: Row(
@@ -5335,7 +5420,7 @@ class _SmallInsightPill extends StatelessWidget {
           Expanded(
               child: Text(text,
                   style: TextStyle(
-                      color: Colors.white.withAlpha(168),
+                      color: tokens.textSecondary,
                       fontSize: 12.1,
                       height: 1.32,
                       fontWeight: FontWeight.w800))),
@@ -5437,27 +5522,10 @@ class _CleanFormIntroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = SpeakeryThemeTokens.of(context);
     final accent = _grammarAccentText(tokens, color);
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 26,
+      accent: color,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: tokens.isLight
-              ? _grammarLightGlass(color)
-              : [
-                  color.withAlpha(22),
-                  const Color(0xFF10122A).withAlpha(210),
-                  Colors.white.withAlpha(6),
-                ],
-        ),
-        border: Border.all(
-            color: tokens.isLight
-                ? _grammarGlassBorder(tokens, accent: color)
-                : color.withAlpha(30)),
-      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -5520,6 +5588,7 @@ class _CleanFormulaRowCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final tone = _formulaTone(row, color);
     final label = _repairMojibake(_formulaLabel(row, isEnglish));
     final sample = _repairMojibake(_canonicalRowModel(row));
@@ -5534,9 +5603,8 @@ class _CleanFormulaRowCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            tone.withAlpha(15),
-            const Color(0xFF081225).withAlpha(210),
-            Colors.black.withAlpha(8)
+            tone.withAlpha(tokens.isLight ? 26 : 15),
+            tokens.elevatedSurface,
           ],
         ),
         border: Border.all(color: tone.withAlpha(32)),
@@ -5557,8 +5625,8 @@ class _CleanFormulaRowCard extends StatelessWidget {
                   border: Border.all(color: tone.withAlpha(35)),
                 ),
                 child: Text('$number',
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: tokens.textPrimary,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w900)),
               ),
@@ -5588,7 +5656,7 @@ class _CleanFormulaRowCard extends StatelessWidget {
                       const SizedBox(height: 9),
                       Text(sample,
                           style: TextStyle(
-                              color: Colors.white.withAlpha(220),
+                              color: tokens.textPrimary,
                               fontSize: 14.4,
                               height: 1.26,
                               fontWeight: FontWeight.w900)),
@@ -5597,7 +5665,7 @@ class _CleanFormulaRowCard extends StatelessWidget {
                       const SizedBox(height: 7),
                       Text(hint,
                           style: TextStyle(
-                              color: Colors.white.withAlpha(142),
+                              color: tokens.textSecondary,
                               fontSize: 11.6,
                               height: 1.28,
                               fontWeight: FontWeight.w700)),
@@ -5631,32 +5699,17 @@ class _GrammarMachineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final hasRows = rows.isNotEmpty && selectedIndex >= 0;
     final selected =
         hasRows ? rows[selectedIndex.clamp(0, rows.length - 1)] : null;
     final selectedTone =
         selected == null ? color : _formulaTone(selected, color);
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 30,
+      blur: 24,
+      accent: color,
       padding: const EdgeInsets.fromLTRB(15, 15, 15, 15),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color.withAlpha(28),
-              const Color(0xFF10122A).withAlpha(215),
-              Colors.white.withAlpha(7)
-            ]),
-        border: Border.all(color: color.withAlpha(32)),
-        boxShadow: [
-          BoxShadow(
-              color: color.withAlpha(10),
-              blurRadius: 24,
-              offset: const Offset(0, 12))
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -5677,7 +5730,7 @@ class _GrammarMachineCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(t('Sentence engine', 'C�mle motoru'),
+                    Text(t('Sentence engine', 'Cümle motoru'),
                         style: TextStyle(
                             color: color,
                             fontSize: 13.2,
@@ -5685,9 +5738,9 @@ class _GrammarMachineCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       t('Choose a structure; the matching block opens below.',
-                          'Bir yap? se�; ilgili blok a_a?1da otomatik a�1ls1n.'),
+                          'Bir yapı seç; ilgili blok aşağıda otomatik açılsın.'),
                       style: TextStyle(
-                          color: Colors.white.withAlpha(145),
+                          color: tokens.textSecondary,
                           fontSize: 11.7,
                           height: 1.28,
                           fontWeight: FontWeight.w700),
@@ -5714,13 +5767,10 @@ class _GrammarMachineCard extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
-                      color: active
-                          ? tone.withAlpha(34)
-                          : Colors.black.withAlpha(18),
+                      color:
+                          active ? tone.withAlpha(34) : tokens.inputSurface,
                       border: Border.all(
-                          color: active
-                              ? tone.withAlpha(78)
-                              : Colors.white.withAlpha(11)),
+                          color: active ? tone.withAlpha(78) : tokens.border),
                       boxShadow: active
                           ? [
                               BoxShadow(
@@ -5738,15 +5788,13 @@ class _GrammarMachineCard extends StatelessWidget {
                             height: 6,
                             decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: active
-                                    ? tone
-                                    : Colors.white.withAlpha(82))),
+                                color: active ? tone : tokens.textMuted)),
                         const SizedBox(width: 7),
                         Text(_formulaLabel(rows[index], isEnglish),
                             style: TextStyle(
                                 color: active
-                                    ? Colors.white
-                                    : Colors.white.withAlpha(150),
+                                    ? tokens.textPrimary
+                                    : tokens.textSecondary,
                                 fontSize: 11.4,
                                 fontWeight: FontWeight.w900)),
                       ],
@@ -5763,13 +5811,13 @@ class _GrammarMachineCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                color: Colors.black.withAlpha(18),
-                border: Border.all(color: Colors.white.withAlpha(13)),
+                color: tokens.inputSurface,
+                border: Border.all(color: tokens.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(t('Selected structure', 'Se�ilen yap?'),
+                  Text(t('Selected structure', 'Seçilen yapı'),
                       style: TextStyle(
                           color: selectedTone,
                           fontSize: 10.8,
@@ -5785,7 +5833,7 @@ class _GrammarMachineCard extends StatelessWidget {
                       Expanded(
                           child: Text(selected.sample,
                               style: TextStyle(
-                                  color: Colors.white.withAlpha(180),
+                                  color: tokens.textSecondary,
                                   fontSize: 12.1,
                                   height: 1.25,
                                   fontWeight: FontWeight.w800))),
@@ -5859,6 +5907,7 @@ class _FormulaStructureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final label = _formulaLabel(row, isEnglish);
     final action = _formulaAction(row, isEnglish);
     final tone = _formulaTone(row, color);
@@ -5876,21 +5925,16 @@ class _FormulaStructureCard extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    tone.withAlpha(24),
-                    const Color(0xFF0A1230).withAlpha(210),
-                    Colors.black.withAlpha(10)
+                    tone.withAlpha(tokens.isLight ? 36 : 24),
+                    tokens.elevatedSurface,
                   ],
                 )
               : LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                      Colors.white.withAlpha(5),
-                      Colors.black.withAlpha(12)
-                    ]),
+                  colors: [tokens.glassStrong, tokens.glass]),
           border: Border.all(
-              color:
-                  expanded ? tone.withAlpha(50) : Colors.white.withAlpha(10)),
+              color: expanded ? tone.withAlpha(50) : tokens.border),
           boxShadow: expanded
               ? [
                   BoxShadow(
@@ -5933,15 +5977,15 @@ class _FormulaStructureCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 5),
                       Text(row.pattern,
-                          style: const TextStyle(
-                              color: Colors.white,
+                          style: TextStyle(
+                              color: tokens.textPrimary,
                               fontSize: 14.4,
                               height: 1.18,
                               fontWeight: FontWeight.w900)),
                       const SizedBox(height: 6),
                       Text(_canonicalRowModel(row),
                           style: TextStyle(
-                              color: Colors.white.withAlpha(145),
+                              color: tokens.textSecondary,
                               fontSize: 12.1,
                               height: 1.28,
                               fontWeight: FontWeight.w700)),
@@ -5949,12 +5993,12 @@ class _FormulaStructureCard extends StatelessWidget {
                   ),
                 ),
                 Icon(expanded ? Icons.remove_rounded : Icons.add_rounded,
-                    color: Colors.white.withAlpha(130), size: 20),
+                    color: tokens.textSecondary, size: 20),
               ],
             ),
             if (expanded) ...[
               const SizedBox(height: 13),
-              Container(height: 1, color: Colors.white.withAlpha(10)),
+              Container(height: 1, color: tokens.border),
               const SizedBox(height: 12),
               _FormulaBreakdown(row: row, color: tone, isEnglish: isEnglish),
             ],
@@ -6039,6 +6083,7 @@ class _FormulaBuildStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
@@ -6057,8 +6102,8 @@ class _FormulaBuildStrip extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
               child: Text(pattern,
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 12.7,
                       height: 1.22,
                       fontWeight: FontWeight.w900))),
@@ -6082,12 +6127,13 @@ class _FormulaSignalTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       constraints: const BoxConstraints(minHeight: 68),
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        color: Colors.black.withAlpha(15),
+        color: tokens.inputSurface,
         border: Border.all(color: color.withAlpha(28)),
       ),
       child: Column(
@@ -6107,7 +6153,7 @@ class _FormulaSignalTile extends StatelessWidget {
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                  color: Colors.white.withAlpha(178),
+                  color: tokens.textSecondary,
                   fontSize: 11.4,
                   height: 1.26,
                   fontWeight: FontWeight.w800)),
@@ -6127,13 +6173,14 @@ class _FormulaLogicNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        color: Colors.white.withAlpha(5),
-        border: Border.all(color: Colors.white.withAlpha(11)),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -6146,7 +6193,7 @@ class _FormulaLogicNote extends StatelessWidget {
           Expanded(
               child: Text(text,
                   style: TextStyle(
-                      color: Colors.white.withAlpha(166),
+                      color: tokens.textSecondary,
                       fontSize: 11.8,
                       height: 1.32,
                       fontWeight: FontWeight.w800))),
@@ -6166,6 +6213,7 @@ class _FormulaNumberBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       width: 35,
@@ -6173,13 +6221,13 @@ class _FormulaNumberBadge extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: active ? color.withAlpha(30) : Colors.white.withAlpha(7),
+        color: active ? color.withAlpha(30) : tokens.inputSurface,
         border: Border.all(
-            color: active ? color.withAlpha(45) : Colors.white.withAlpha(10)),
+            color: active ? color.withAlpha(45) : tokens.border),
       ),
       child: Text('$number',
-          style: const TextStyle(
-              color: Colors.white,
+          style: TextStyle(
+              color: tokens.textPrimary,
               fontSize: 12.0,
               fontWeight: FontWeight.w900)),
     );
@@ -7250,6 +7298,7 @@ class _ExampleCoachCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
@@ -7258,11 +7307,7 @@ class _ExampleCoachCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            color.withAlpha(16),
-            Colors.white.withAlpha(6),
-            Colors.black.withAlpha(12)
-          ],
+          colors: [color.withAlpha(16), tokens.glass],
         ),
         border: Border.all(color: color.withAlpha(24)),
       ),
@@ -7298,7 +7343,7 @@ class _ExampleCoachCard extends StatelessWidget {
                   t('Choose a sentence type and scan several clean examples.',
                       'Cümle türünü seç; aynı yapıda birkaç net örnek gör.'),
                   style: TextStyle(
-                      color: Colors.white.withAlpha(164),
+                      color: tokens.textSecondary,
                       fontSize: 12.35,
                       height: 1.35,
                       fontWeight: FontWeight.w700),
@@ -11422,27 +11467,10 @@ class _CleanExamplesIntroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = SpeakeryThemeTokens.of(context);
     final accent = _grammarAccentText(tokens, color);
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 26,
+      accent: color,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: tokens.isLight
-              ? _grammarLightGlass(color)
-              : [
-                  color.withAlpha(20),
-                  const Color(0xFF071923).withAlpha(218),
-                  Colors.black.withAlpha(8)
-                ],
-        ),
-        border: Border.all(
-            color: tokens.isLight
-                ? _grammarGlassBorder(tokens, accent: color)
-                : color.withAlpha(28)),
-      ),
       child: Row(
         children: [
           Container(
@@ -11961,6 +11989,7 @@ class _CleanExampleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
@@ -11969,12 +11998,16 @@ class _CleanExampleCard extends StatelessWidget {
         gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              color.withAlpha(13),
-              const Color(0xFF071A29).withAlpha(210),
-              Colors.black.withAlpha(8)
-            ]),
-        border: Border.all(color: color.withAlpha(26)),
+            colors: tokens.isLight
+                ? _grammarLightGlass(color)
+                : [
+                    color.withAlpha(13),
+                    const Color(0xFF071A29).withAlpha(210),
+                    Colors.black.withAlpha(8)
+                  ]),
+        border: Border.all(
+            color:
+                tokens.isLight ? _grammarGlassBorder(tokens, accent: color) : color.withAlpha(26)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -11989,8 +12022,8 @@ class _CleanExampleCard extends StatelessWidget {
               border: Border.all(color: color.withAlpha(32)),
             ),
             child: Text('$number',
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 11.5,
                     fontWeight: FontWeight.w900)),
           ),
@@ -12013,7 +12046,7 @@ class _CleanExampleCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(sentence,
                     style: TextStyle(
-                        color: Colors.white.withAlpha(220),
+                        color: tokens.textPrimary,
                         fontSize: 14.3,
                         height: 1.28,
                         fontWeight: FontWeight.w900)),
@@ -12070,6 +12103,7 @@ class _CompactTypePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
@@ -12078,12 +12112,9 @@ class _CompactTypePill extends StatelessWidget {
           horizontal: selected ? 15 : 13, vertical: selected ? 10 : 9),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        color:
-            selected ? category.tint.withAlpha(26) : Colors.white.withAlpha(6),
+        color: selected ? category.tint.withAlpha(26) : tokens.inputSurface,
         border: Border.all(
-            color: selected
-                ? category.tint.withAlpha(58)
-                : Colors.white.withAlpha(12)),
+            color: selected ? category.tint.withAlpha(58) : tokens.border),
         boxShadow: selected
             ? [
                 BoxShadow(
@@ -12098,15 +12129,13 @@ class _CompactTypePill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(category.icon,
-              color: selected ? category.tint : Colors.white.withAlpha(132),
+              color: selected ? category.tint : tokens.textSecondary,
               size: 15.5),
           const SizedBox(width: 7),
           Text(
             category.label(isEnglish),
             style: TextStyle(
-              color: selected
-                  ? category.tint.withAlpha(244)
-                  : Colors.white.withAlpha(166),
+              color: selected ? category.tint.withAlpha(244) : tokens.textSecondary,
               fontSize: 12.35,
               fontWeight: FontWeight.w900,
               letterSpacing: .05,
@@ -12140,7 +12169,7 @@ class _ExampleMinimalPanel extends StatelessWidget {
     }
     final trapText = trap == sentence
         ? t('Do not mix this structure with another rule.',
-            'Bu yap?y? ba_ka bir kuralla kar1_t1rma.')
+            'Bu yapıyı başka bir kuralla karıştırma.')
         : trap;
 
     return Column(
@@ -12233,6 +12262,7 @@ class _MiniCompareTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       constraints: const BoxConstraints(minHeight: 82),
       padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
@@ -12261,7 +12291,7 @@ class _MiniCompareTile extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                  color: Colors.white.withAlpha(195),
+                  color: tokens.textPrimary,
                   fontSize: 11.9,
                   height: 1.24,
                   fontWeight: FontWeight.w800)),
@@ -16251,6 +16281,7 @@ class _ContextHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final watermarkIcon = pack.backgroundIcons.isNotEmpty
         ? pack.backgroundIcons.first
         : pack.heroIcon;
@@ -16258,28 +16289,11 @@ class _ContextHeroCard extends StatelessWidget {
         ? pack.backgroundIcons[1]
         : pack.heroIcon;
 
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 28,
+      blur: 24,
+      accent: color,
       padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withAlpha(30),
-            Colors.white.withAlpha(6),
-            Colors.black.withAlpha(12),
-          ],
-        ),
-        border: Border.all(color: Colors.white.withAlpha(14), width: 1),
-        boxShadow: [
-          BoxShadow(
-              color: color.withAlpha(10),
-              blurRadius: 26,
-              offset: const Offset(0, 14)),
-        ],
-      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(26),
         child: Stack(
@@ -16291,7 +16305,7 @@ class _ContextHeroCard extends StatelessWidget {
                 child: Icon(
                   watermarkIcon,
                   size: 118,
-                  color: Colors.white.withAlpha(12),
+                  color: tokens.textPrimary.withAlpha(12),
                 ),
               ),
             ),
@@ -16304,11 +16318,11 @@ class _ContextHeroCard extends StatelessWidget {
                   height: 34,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withAlpha(7),
-                    border: Border.all(color: Colors.white.withAlpha(9)),
+                    color: tokens.inputSurface,
+                    border: Border.all(color: tokens.border),
                   ),
                   child: Icon(secondIcon,
-                      color: Colors.white.withAlpha(35), size: 16),
+                      color: tokens.textSecondary, size: 16),
                 ),
               ),
             ),
@@ -16322,7 +16336,7 @@ class _ContextHeroCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
-                      colors: [color.withAlpha(18), Colors.transparent],
+                      colors: [color.withAlpha(18), color.withAlpha(0)],
                     ),
                   ),
                 ),
@@ -16355,8 +16369,8 @@ class _ContextHeroCard extends StatelessWidget {
                               pack.title,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: tokens.textPrimary,
                                 fontSize: 17.0,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -0.35,
@@ -16369,7 +16383,7 @@ class _ContextHeroCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Colors.white.withAlpha(150),
+                                color: tokens.textSecondary,
                                 fontSize: 12.1,
                                 fontWeight: FontWeight.w700,
                                 height: 1.25,
@@ -16387,15 +16401,17 @@ class _ContextHeroCard extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    color: Colors.black.withAlpha(26),
-                    border: Border.all(color: Colors.white.withAlpha(9)),
+                    color: tokens.isLight
+                        ? tokens.inputSurface
+                        : Colors.black.withAlpha(26),
+                    border: Border.all(color: tokens.border),
                   ),
                   child: Text(
                     pack.scene,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white.withAlpha(205),
+                      color: tokens.textPrimary,
                       fontSize: 12.6,
                       fontWeight: FontWeight.w800,
                       height: 1.32,
@@ -16424,6 +16440,7 @@ class _ContextSectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -16440,15 +16457,15 @@ class _ContextSectionTitle extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title,
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 14.5,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.1)),
               const SizedBox(height: 2),
               Text(subtitle,
                   style: TextStyle(
-                      color: Colors.white.withAlpha(130),
+                      color: tokens.textSecondary,
                       fontSize: 11.4,
                       fontWeight: FontWeight.w700,
                       height: 1.25)),
@@ -16473,21 +16490,10 @@ class _ContextDialogueCard extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxBubble = (constraints.maxWidth * 0.82).clamp(260.0, 460.0);
-        return Container(
-          width: double.infinity,
+        return IosLiquidGlassSurface(
+          radius: 24,
+          accent: color,
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: tokens.isLight
-                ? LinearGradient(colors: _grammarLightGlass(color))
-                : null,
-            color: tokens.isLight ? null : tokens.elevatedSurface,
-            border: Border.all(
-              color: tokens.isLight
-                  ? _grammarGlassBorder(tokens, accent: color)
-                  : tokens.border,
-            ),
-          ),
           child: Column(
             children: lines.asMap().entries.map((entry) {
               final line = entry.value;
@@ -16542,9 +16548,10 @@ class _HighlightedDialogueText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Text(text,
-        style: const TextStyle(
-            color: Colors.white,
+        style: TextStyle(
+            color: tokens.textPrimary,
             fontSize: 13.2,
             fontWeight: FontWeight.w800,
             height: 1.3));
@@ -16654,26 +16661,26 @@ String _contextSituationLabelForKey(String key, bool isEnglish) {
     case 'a1_present_simple':
       return t('Morning routine', 'Sabah rutini');
     case 'a1_present_continuous':
-      return t('Right now', '^u an');
+      return t('Right now', 'Şu an');
     case 'a2_past_simple':
-      return t('Yesterday evening', 'D�n ak?am');
+      return t('Yesterday evening', 'Dün akşam');
     case 'a2_past_continuous':
-      return t('In the middle of it', 'Tam ortas1nda');
+      return t('In the middle of it', 'Tam ortasında');
     case 'a2_present_perfect':
     case 'b1_present_perfect':
       return t('At a cafe', 'Kafede');
     case 'a2_should':
       return t('Before an exam', 'Sınav öncesi');
     case 'a2_going_to':
-      return t('Weekend plans', 'Hafta sonu plan1');
+      return t('Weekend plans', 'Hafta sonu planı');
     case 'a2_will':
-      return t('Quick decision', 'Anl1k karar');
+      return t('Quick decision', 'Anlık karar');
     default:
       if (key.contains('passive')) return t('News / report', 'Haber / rapor');
       if (key.contains('conditional')) {
         return t('Planning together', 'Birlikte plan');
       }
-      return t('Daily life', 'G�nl�k hayat');
+      return t('Daily life', 'Günlük hayat');
   }
 }
 
@@ -16694,31 +16701,14 @@ class _ContextPatternCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final title = point.title(isEnglish);
     final rule = point.logic(isEnglish);
 
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 25,
+      accent: color,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withAlpha(20),
-            const Color(0xFF08111C).withAlpha(232),
-            Colors.white.withAlpha(5),
-          ],
-        ),
-        border: Border.all(color: Colors.white.withAlpha(12), width: 1),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withAlpha(20),
-              blurRadius: 18,
-              offset: const Offset(0, 9)),
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -16735,8 +16725,8 @@ class _ContextPatternCard extends StatelessWidget {
                 ),
                 child: Text(
                   '$index',
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 12,
                       fontWeight: FontWeight.w900),
                 ),
@@ -16760,8 +16750,8 @@ class _ContextPatternCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             point.model,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: tokens.textPrimary,
               fontSize: 18.2,
               fontWeight: FontWeight.w900,
               height: 1.16,
@@ -16774,13 +16764,13 @@ class _ContextPatternCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
-              color: Colors.black.withAlpha(24),
-              border: Border.all(color: Colors.white.withAlpha(8)),
+              color: tokens.inputSurface,
+              border: Border.all(color: tokens.border),
             ),
             child: Text(
               rule,
               style: TextStyle(
-                  color: Colors.white.withAlpha(178),
+                  color: tokens.textSecondary,
                   fontSize: 12.1,
                   fontWeight: FontWeight.w800,
                   height: 1.32),
@@ -16797,7 +16787,7 @@ class _ContextPatternCard extends StatelessWidget {
                 child: Text(
                   point.avoid,
                   style: TextStyle(
-                    color: Colors.white.withAlpha(125),
+                    color: tokens.textMuted,
                     fontSize: 12.2,
                     fontWeight: FontWeight.w800,
                     height: 1.26,
@@ -16834,7 +16824,7 @@ class _ContextMicroPill extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-            color: Colors.white.withAlpha(205),
+            color: color,
             fontSize: 9.6,
             fontWeight: FontWeight.w900,
             letterSpacing: 0.45),
@@ -16860,27 +16850,11 @@ class _ContextScenarioCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final tokens = SpeakeryThemeTokens.of(context);
+    return IosLiquidGlassSurface(
+      radius: 23,
+      accent: color,
       padding: const EdgeInsets.fromLTRB(12, 12, 13, 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(23),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withAlpha(15),
-            const Color(0xFF07111E).withAlpha(238),
-            Colors.white.withAlpha(5),
-          ],
-        ),
-        border: Border.all(color: Colors.white.withAlpha(10), width: 1),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withAlpha(16),
-              blurRadius: 15,
-              offset: const Offset(0, 7)),
-        ],
-      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -16900,7 +16874,7 @@ class _ContextScenarioCard extends StatelessWidget {
                 Text(
                   index.toString().padLeft(2, '0'),
                   style: TextStyle(
-                      color: Colors.white.withAlpha(150),
+                      color: tokens.textSecondary,
                       fontSize: 9.2,
                       fontWeight: FontWeight.w900),
                 ),
@@ -16921,7 +16895,7 @@ class _ContextScenarioCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: color.withAlpha(235),
+                          color: color,
                           fontSize: 12.0,
                           fontWeight: FontWeight.w900,
                           letterSpacing: -0.03,
@@ -16935,13 +16909,13 @@ class _ContextScenarioCard extends StatelessWidget {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
-                        color: Colors.white.withAlpha(7),
-                        border: Border.all(color: Colors.white.withAlpha(8)),
+                        color: tokens.inputSurface,
+                        border: Border.all(color: tokens.border),
                       ),
                       child: Text(
                         t('SAY', 'SÖYLE'),
                         style: TextStyle(
-                          color: Colors.white.withAlpha(150),
+                          color: tokens.textSecondary,
                           fontSize: 9.0,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.35,
@@ -16955,8 +16929,8 @@ class _ContextScenarioCard extends StatelessWidget {
                   scenario.sentence,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 15.6,
                     fontWeight: FontWeight.w900,
                     height: 1.18,
@@ -16981,6 +16955,7 @@ class _ContextTipCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(15),
@@ -16997,7 +16972,7 @@ class _ContextTipCard extends StatelessWidget {
           Expanded(
             child: Text(tip,
                 style: TextStyle(
-                    color: Colors.white.withAlpha(210),
+                    color: tokens.textPrimary,
                     fontSize: 12.7,
                     fontWeight: FontWeight.w800,
                     height: 1.38)),
@@ -17165,28 +17140,11 @@ class _PracticeMissionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    final tokens = SpeakeryThemeTokens.of(context);
+    return IosLiquidGlassSurface(
+      radius: 30,
+      accent: color,
       padding: const EdgeInsets.fromLTRB(15, 15, 15, 13),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withAlpha(32),
-            Colors.white.withAlpha(7),
-            Colors.black.withAlpha(18)
-          ],
-        ),
-        border: Border.all(color: Colors.white.withAlpha(13)),
-        boxShadow: [
-          BoxShadow(
-              color: color.withAlpha(7),
-              blurRadius: 24,
-              offset: const Offset(0, 12))
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -17209,15 +17167,15 @@ class _PracticeMissionPanel extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(mission.title,
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: tokens.textPrimary,
                             fontSize: 15.4,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.25)),
                     const SizedBox(height: 4),
                     Text(mission.subtitle,
                         style: TextStyle(
-                            color: Colors.white.withAlpha(145),
+                            color: tokens.textSecondary,
                             fontSize: 12.1,
                             height: 1.25,
                             fontWeight: FontWeight.w700)),
@@ -17343,6 +17301,7 @@ class _BrokenSentenceBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
@@ -17361,8 +17320,8 @@ class _BrokenSentenceBox extends StatelessWidget {
                   fontWeight: FontWeight.w900)),
           const SizedBox(height: 6),
           Text(wrong,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: tokens.textPrimary,
                   fontSize: 14,
                   height: 1.25,
                   fontWeight: FontWeight.w900)),
@@ -17393,6 +17352,7 @@ class _PracticeOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final showCorrect = checked && correct;
     final showWrong = checked && selected && !correct;
     final borderColor = showCorrect
@@ -17401,14 +17361,14 @@ class _PracticeOptionTile extends StatelessWidget {
             ? const Color(0xFFFF6B6B).withAlpha(85)
             : selected
                 ? color.withAlpha(88)
-                : Colors.white.withAlpha(14);
+                : tokens.border;
     final fillColor = showCorrect
         ? const Color(0xFF28E681).withAlpha(16)
         : showWrong
             ? const Color(0xFFFF6B6B).withAlpha(14)
             : selected
                 ? color.withAlpha(22)
-                : Colors.black.withAlpha(16);
+                : tokens.inputSurface;
 
     return _TapScale(
       onTap: onTap,
@@ -17429,20 +17389,20 @@ class _PracticeOptionTile extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withAlpha(8),
-                border: Border.all(color: Colors.white.withAlpha(13)),
+                color: tokens.inputSurface,
+                border: Border.all(color: tokens.border),
               ),
               child: Text(letter,
                   style: TextStyle(
-                      color: Colors.white.withAlpha(150),
+                      color: tokens.textSecondary,
                       fontSize: 12.0,
                       fontWeight: FontWeight.w900)),
             ),
             const SizedBox(width: 11),
             Expanded(
                 child: Text(text,
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: tokens.textPrimary,
                         fontSize: 13.2,
                         height: 1.25,
                         fontWeight: FontWeight.w800))),
@@ -17915,6 +17875,7 @@ class _BuildSentenceCardState extends State<_BuildSentenceCard> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final available = availableWords;
     final progress = words.isEmpty ? 0.0 : selectedWords.length / words.length;
 
@@ -17934,7 +17895,7 @@ class _BuildSentenceCardState extends State<_BuildSentenceCard> {
             t('Use all word cards to build the target sentence.',
                 'Kartların hepsini kullanıp tek hedef cümleyi kur.'),
             style: TextStyle(
-                color: Colors.white.withAlpha(110),
+                color: tokens.textMuted,
                 fontSize: 11.4,
                 height: 1.25,
                 fontWeight: FontWeight.w700),
@@ -17945,7 +17906,7 @@ class _BuildSentenceCardState extends State<_BuildSentenceCard> {
             child: LinearProgressIndicator(
               minHeight: 4,
               value: progress.clamp(0.0, 1.0),
-              backgroundColor: Colors.white.withAlpha(10),
+              backgroundColor: tokens.border,
               valueColor: AlwaysStoppedAnimation<Color>(widget.color),
             ),
           ),
@@ -17969,7 +17930,7 @@ class _BuildSentenceCardState extends State<_BuildSentenceCard> {
                   borderRadius: BorderRadius.circular(24),
                   color: active
                       ? widget.color.withAlpha(18)
-                      : Colors.black.withAlpha(20),
+                      : tokens.inputSurface,
                   border: Border.all(
                       color: active
                           ? widget.color.withAlpha(60)
@@ -17997,7 +17958,7 @@ class _BuildSentenceCardState extends State<_BuildSentenceCard> {
                           Text(
                             t('Drag words here.', 'Kelimeleri buraya sürükle.'),
                             style: TextStyle(
-                                color: Colors.white.withAlpha(115),
+                                color: tokens.textMuted,
                                 fontSize: 11.6,
                                 height: 1.2,
                                 fontWeight: FontWeight.w700),
@@ -18013,7 +17974,7 @@ class _BuildSentenceCardState extends State<_BuildSentenceCard> {
                                 horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(16),
-                              color: Colors.black.withAlpha(18),
+                              color: tokens.inputSurface,
                               border:
                                   Border.all(color: widget.color.withAlpha(22)),
                             ),
@@ -18022,7 +17983,7 @@ class _BuildSentenceCardState extends State<_BuildSentenceCard> {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Colors.white.withAlpha(235),
+                                color: tokens.textPrimary,
                                 fontSize: 15.0,
                                 fontWeight: FontWeight.w700,
                                 height: 1.2,
@@ -18071,15 +18032,15 @@ class _BuildSentenceCardState extends State<_BuildSentenceCard> {
           const SizedBox(height: 13),
           Row(
             children: [
-              Text(t('Word cards', 'Kelime kartlar1'),
+              Text(t('Word cards', 'Kelime kartları'),
                   style: TextStyle(
-                      color: Colors.white.withAlpha(135),
+                      color: tokens.textSecondary,
                       fontSize: 11.6,
                       fontWeight: FontWeight.w900)),
               const Spacer(),
               Text(t('drag or tap', 'sürükle veya dokun'),
                   style: TextStyle(
-                      color: Colors.white.withAlpha(82),
+                      color: tokens.textMuted,
                       fontSize: 10.6,
                       fontWeight: FontWeight.w800)),
             ],
@@ -18100,7 +18061,7 @@ class _BuildSentenceCardState extends State<_BuildSentenceCard> {
                       ),
                       child: Text(t('All words added', 'Tüm kelimeler eklendi'),
                           style: TextStyle(
-                              color: Colors.white.withAlpha(145),
+                              color: tokens.textSecondary,
                               fontSize: 11.5,
                               fontWeight: FontWeight.w800)),
                     ),
@@ -18150,7 +18111,7 @@ class _BuildSentenceCardState extends State<_BuildSentenceCard> {
             children: [
               Expanded(
                   child: _MiniActionButton(
-                      label: t('Reset', 'S1f1rla'),
+                      label: t('Reset', 'Sıfırla'),
                       icon: Icons.refresh_rounded,
                       color: widget.color,
                       soft: true,
@@ -18158,7 +18119,7 @@ class _BuildSentenceCardState extends State<_BuildSentenceCard> {
               const SizedBox(width: 9),
               Expanded(
                   child: _MiniActionButton(
-                      label: t('Check order', 'S1ray1 kontrol et'),
+                      label: t('Check order', 'Sırayı kontrol et'),
                       icon: Icons.check_rounded,
                       color: widget.color,
                       soft: false,
@@ -18200,6 +18161,7 @@ class _BuildChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final horizontal = compact ? 10.0 : 12.0;
     final vertical = compact ? 5.0 : 9.0;
     final fontSize = compact ? 13.2 : 12.0;
@@ -18211,10 +18173,9 @@ class _BuildChip extends StatelessWidget {
             EdgeInsets.symmetric(horizontal: horizontal, vertical: vertical),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
-          color: selected ? color.withAlpha(22) : Colors.white.withAlpha(7),
+          color: selected ? color.withAlpha(22) : tokens.inputSurface,
           border: Border.all(
-              color:
-                  selected ? color.withAlpha(40) : Colors.white.withAlpha(13)),
+              color: selected ? color.withAlpha(40) : tokens.border),
           boxShadow: selected
               ? [
                   BoxShadow(
@@ -18233,14 +18194,14 @@ class _BuildChip extends StatelessWidget {
             ],
             Text(label,
                 style: TextStyle(
-                    color: Colors.white.withAlpha(235),
+                    color: tokens.textPrimary,
                     fontSize: fontSize,
                     fontWeight: FontWeight.w700,
                     height: 1)),
             if (selected) ...[
               const SizedBox(width: 6),
               Icon(Icons.close_rounded,
-                  color: Colors.white.withAlpha(115), size: 13)
+                  color: tokens.textSecondary, size: 13)
             ],
           ],
         ),
@@ -18298,6 +18259,7 @@ class _PracticeWritingCardState extends State<_PracticeWritingCard> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _PracticeShell(
       color: widget.color,
       child: Column(
@@ -18314,13 +18276,13 @@ class _PracticeWritingCardState extends State<_PracticeWritingCard> {
             padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
             decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(22),
-                color: Colors.black.withAlpha(20),
-                border: Border.all(color: Colors.white.withAlpha(12))),
+                color: tokens.inputSurface,
+                border: Border.all(color: tokens.border)),
             child: Text(
                 t('Write one clear sentence from daily life.',
                     'Günlük hayattan net bir cümle yaz.'),
                 style: TextStyle(
-                    color: Colors.white.withAlpha(165),
+                    color: tokens.textSecondary,
                     fontSize: 12.5,
                     height: 1.35,
                     fontWeight: FontWeight.w700)),
@@ -18331,8 +18293,8 @@ class _PracticeWritingCardState extends State<_PracticeWritingCard> {
             minLines: 4,
             maxLines: 6,
             onChanged: (_) => setState(() => checked = false),
-            style: const TextStyle(
-                color: Colors.white,
+            style: TextStyle(
+                color: tokens.textPrimary,
                 fontSize: 13.2,
                 height: 1.35,
                 fontWeight: FontWeight.w700),
@@ -18341,15 +18303,15 @@ class _PracticeWritingCardState extends State<_PracticeWritingCard> {
               hintText: t('Example: I usually drink tea in the morning.',
                   'Örnek: I usually drink tea in the morning.'),
               hintStyle: TextStyle(
-                  color: Colors.white.withAlpha(72),
+                  color: tokens.textMuted,
                   fontSize: 12.8,
                   fontWeight: FontWeight.w700),
               filled: true,
-              fillColor: Colors.black.withAlpha(24),
+              fillColor: tokens.inputSurface,
               contentPadding: const EdgeInsets.all(14),
               enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(color: Colors.white.withAlpha(14))),
+                  borderSide: BorderSide(color: tokens.border)),
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide(color: widget.color.withAlpha(85))),
@@ -18367,7 +18329,7 @@ class _PracticeWritingCardState extends State<_PracticeWritingCard> {
                   ? t('Now compare it with the example sentence.',
                       'Şimdi örnek cümleyle karşılaştırabilirsin.')
                   : t('Aim for at least five words.',
-                      'En az be_ kelime hedefle.'),
+                      'En az beş kelime hedefle.'),
             ),
           ],
           if (widget.revealed) ...[
@@ -18412,13 +18374,14 @@ class _PracticeShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(30),
-        color: Colors.white.withAlpha(6),
-        border: Border.all(color: Colors.white.withAlpha(13)),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
         boxShadow: [
           BoxShadow(
               color: color.withAlpha(6),
@@ -18452,8 +18415,8 @@ class _PracticeTitleRow extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
             child: Text(title,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: SpeakeryThemeTokens.of(context).textPrimary,
                     fontSize: 14.2,
                     fontWeight: FontWeight.w900))),
         if (showTrailing)
@@ -18510,7 +18473,7 @@ class _PracticeResultCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(body,
                     style: TextStyle(
-                        color: Colors.white.withAlpha(170),
+                        color: SpeakeryThemeTokens.of(context).textSecondary,
                         fontSize: 12.2,
                         height: 1.3,
                         fontWeight: FontWeight.w700)),
@@ -18537,13 +18500,14 @@ class _PracticeModeTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       height: 44,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
-          color: Colors.black.withAlpha(22),
-          border: Border.all(color: Colors.white.withAlpha(12))),
+          color: tokens.inputSurface,
+          border: Border.all(color: tokens.border)),
       child: Row(
         children: List.generate(labels.length, (index) {
           final selected = selectedIndex == index;
@@ -18566,9 +18530,7 @@ class _PracticeModeTabs extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: selected
-                            ? Colors.white
-                            : Colors.white.withAlpha(125),
+                        color: selected ? Colors.white : tokens.textSecondary,
                         fontSize: 12.0,
                         fontWeight: FontWeight.w900)),
               ),
@@ -19650,6 +19612,7 @@ class _MistakesLesson extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final wrong = lesson.wrong.trim();
     final right = lesson.right.trim();
     return Container(
@@ -19657,22 +19620,24 @@ class _MistakesLesson extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        color: Colors.black.withAlpha(18),
-        border: Border.all(color: Colors.white.withAlpha(12)),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             t('Common mistake', 'Yaygın hata'),
-            style: const TextStyle(
-                color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900),
+            style: TextStyle(
+                color: tokens.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w900),
           ),
           if (wrong.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(wrong,
                 style: TextStyle(
-                    color: Colors.white.withAlpha(150),
+                    color: tokens.textSecondary,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700)),
           ],
@@ -20486,35 +20451,12 @@ class _QuizResultCard extends StatelessWidget {
     final strong = percent >= 80;
     final mid = percent >= 60 && percent < 80;
 
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 32,
+      blur: 26,
+      strong: true,
+      accent: color,
       padding: const EdgeInsets.fromLTRB(17, 17, 17, 17),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: tokens.isLight
-              ? [
-                  tokens.elevatedSurface,
-                  Color.alphaBlend(color.withAlpha(14), tokens.elevatedSurface),
-                  tokens.inputSurface,
-                ]
-              : [
-                  color.withAlpha(34),
-                  Colors.white.withAlpha(7),
-                  const Color(0xFF050710).withAlpha(90)
-                ],
-        ),
-        border: Border.all(
-            color: tokens.isLight ? tokens.border : color.withAlpha(30)),
-        boxShadow: [
-          BoxShadow(
-              color: tokens.isLight ? tokens.shadow : color.withAlpha(18),
-              blurRadius: 26,
-              offset: const Offset(0, 14))
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -21134,29 +21076,10 @@ class _InlineMcqCard extends StatelessWidget {
         _combineQuizFeedback(answerText, explanationText, isEnglish);
     final showFeedback = feedbackText.trim().isNotEmpty;
 
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 28,
+      accent: color,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: tokens.isLight
-              ? [
-                  tokens.elevatedSurface,
-                  Color.alphaBlend(color.withAlpha(10), tokens.elevatedSurface),
-                  tokens.inputSurface,
-                ]
-              : [
-                  color.withAlpha(12),
-                  Colors.white.withAlpha(6),
-                  Colors.black.withAlpha(18)
-                ],
-        ),
-        border: Border.all(
-            color: tokens.isLight ? tokens.border : color.withAlpha(30)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -21854,30 +21777,10 @@ class _InlineSentenceOrderCardState extends State<_InlineSentenceOrderCard> {
         '$prompt\n\n${widget.isEnglish ? 'Tap words to build the sentence.' : 'Kelimelere dokunarak cümleyi kur.'}';
     final current = built.join(' ').trim();
 
-    return Container(
-      width: double.infinity,
+    return IosLiquidGlassSurface(
+      radius: 28,
+      accent: widget.color,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: tokens.isLight
-              ? [
-                  tokens.elevatedSurface,
-                  Color.alphaBlend(
-                      widget.color.withAlpha(10), tokens.elevatedSurface),
-                  tokens.inputSurface,
-                ]
-              : [
-                  widget.color.withAlpha(12),
-                  Colors.white.withAlpha(6),
-                  Colors.black.withAlpha(18)
-                ],
-        ),
-        border: Border.all(
-            color: tokens.isLight ? tokens.border : widget.color.withAlpha(30)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -1,15 +1,16 @@
-import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/app_progress.dart';
+import '../../data/community_feed_store.dart';
 import '../../data/social_profile_store.dart';
 import '../../theme/speakery_theme_adapter.dart';
 import '../../theme/speakery_theme_tokens.dart';
 import '../../widgets/ios_liquid_glass.dart';
 import '../../widgets/premium_feedback.dart';
+import '../../widgets/theme_toggle_button.dart';
 import '../speaking_screen/speaking_screen.dart';
 
 const Color _blue = Color(0xFF3B82F6);
@@ -25,55 +26,25 @@ class SocialScreen extends StatefulWidget {
 }
 
 class _SocialScreenState extends State<SocialScreen> {
-  static const String _localPostsKey = 'speakery_social_local_posts';
-  static const String _likedPostsKey = 'speakery_social_liked_posts';
   static const String _savedPostsKey = 'speakery_social_saved_posts';
 
+  final CommunityFeedStore _feed = CommunityFeedStore.instance;
+
   String _filter = 'Feed';
-  final Set<String> _liked = <String>{};
+
+  /// Bookmarks stay on the device — they are a private shortlist, not
+  /// something other learners are meant to see.
   final Set<String> _saved = <String>{};
 
-  List<_SocialPost> _posts = _seedPosts();
+  /// Posts whose replies are currently expanded.
+  final Set<String> _openReplies = <String>{};
 
-  static List<_SocialPost> _seedPosts() => const [
-        _SocialPost(
-          id: 'seed_elif_progress',
-          name: 'Elif',
-          level: 'A2',
-          time: '8m',
-          type: 'Progress',
-          content:
-              'I described my morning in English without translating first.',
-          help: 'Nice natural sentence. Try adding one detail next time.',
-          replies: 6,
-        ),
-        _SocialPost(
-          id: 'seed_mert_question',
-          name: 'Mert',
-          level: 'B1',
-          time: '16m',
-          type: 'Question',
-          content: 'Can someone check this: I go to school yesterday?',
-          help: 'Try: I went to school yesterday.',
-          replies: 11,
-        ),
-        _SocialPost(
-          id: 'seed_aylin_friends',
-          name: 'Aylin',
-          level: 'A1',
-          time: '1h',
-          type: 'Friends',
-          content: 'Small win: I ordered coffee in English today.',
-          replies: 4,
-        ),
-      ];
-
-  List<_SocialPost> get _visiblePosts {
-    if (_filter == 'Challenges') return _posts.take(2).toList();
+  List<CommunityPost> _applyFilter(List<CommunityPost> posts) {
+    if (_filter == 'Challenges') return posts.take(2).toList();
     if (_filter == 'Friends') {
-      return _posts.where((post) => post.type != 'Question').toList();
+      return posts.where((post) => post.type != 'Question').toList();
     }
-    return _posts;
+    return posts;
   }
 
   void _feedback(
@@ -92,29 +63,8 @@ class _SocialScreenState extends State<SocialScreen> {
 
   Future<void> _loadSocialState() async {
     final prefs = await SharedPreferences.getInstance();
-    final localPosts = (prefs.getStringList(_localPostsKey) ?? const <String>[])
-        .map(_SocialPost.fromJsonString)
-        .whereType<_SocialPost>()
-        .where((post) => post.id.isNotEmpty && post.content.trim().isNotEmpty)
-        .toList();
-    final mergedPosts = _seedPosts();
-
-    for (final localPost in localPosts.reversed) {
-      final seedIndex =
-          mergedPosts.indexWhere((post) => post.id == localPost.id);
-      if (seedIndex == -1) {
-        mergedPosts.insert(0, localPost);
-      } else {
-        mergedPosts[seedIndex] = localPost;
-      }
-    }
-
     if (!mounted) return;
     setState(() {
-      _posts = mergedPosts;
-      _liked
-        ..clear()
-        ..addAll(prefs.getStringList(_likedPostsKey) ?? const <String>[]);
       _saved
         ..clear()
         ..addAll(prefs.getStringList(_savedPostsKey) ?? const <String>[]);
@@ -123,13 +73,6 @@ class _SocialScreenState extends State<SocialScreen> {
 
   Future<void> _saveSocialState() async {
     final prefs = await SharedPreferences.getInstance();
-    final localPosts = _posts
-        .where((post) => post.local)
-        .map((post) => jsonEncode(post.toJson()))
-        .toList(growable: false);
-
-    await prefs.setStringList(_localPostsKey, localPosts);
-    await prefs.setStringList(_likedPostsKey, _liked.toList()..sort());
     await prefs.setStringList(_savedPostsKey, _saved.toList()..sort());
   }
 
@@ -162,26 +105,43 @@ class _SocialScreenState extends State<SocialScreen> {
         ? 'A1'
         : progress.englishLevel.trim();
 
-    final post = _SocialPost(
-      id: 'local_${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
-      level: level,
-      time: 'now',
-      type: result.type,
-      content: content,
-      help: _localCoachHint(content, result.type),
-      replies: 0,
-      local: true,
-    );
+    try {
+      await _feed.createPost(
+        text: content,
+        type: result.type,
+        name: name,
+        level: level,
+        help: _localCoachHint(content, result.type),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _feedback(
+        error is StateError
+            ? error.message
+            : 'Could not share the post. Check your connection.',
+        tone: PremiumFeedbackTone.error,
+      );
+      return;
+    }
 
-    setState(() => _posts.insert(0, post));
-    await _saveSocialState();
     if (!mounted) return;
-    _feedback('Post shared on your local feed.',
+    _feedback('Shared with the community.',
         tone: PremiumFeedbackTone.success);
   }
 
-  Future<void> _showReplyComposer(_SocialPost post) async {
+  Future<void> _toggleLike(CommunityPost post) async {
+    try {
+      await _feed.toggleLike(post);
+    } catch (error) {
+      if (!mounted) return;
+      _feedback(
+        error is StateError ? error.message : 'Could not update the like.',
+        tone: PremiumFeedbackTone.error,
+      );
+    }
+  }
+
+  Future<void> _showReplyComposer(CommunityPost post) async {
     final reply = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -195,14 +155,33 @@ class _SocialScreenState extends State<SocialScreen> {
     final cleanReply = reply?.trim() ?? '';
     if (cleanReply.length < 2) return;
 
-    setState(() {
-      final index = _posts.indexWhere((item) => item.id == post.id);
-      if (index == -1) return;
-      _posts[index] = _posts[index].withReply(cleanReply);
-    });
-    await _saveSocialState();
+    final profile = SocialProfileStore.instance;
+    final progress = AppProgress.instance;
+
+    try {
+      await _feed.addComment(
+        postId: post.id,
+        text: cleanReply,
+        name: profile.displayName.trim().isEmpty
+            ? 'You'
+            : profile.displayName.trim(),
+        level: progress.englishLevel.trim().isEmpty
+            ? 'A1'
+            : progress.englishLevel.trim(),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _feedback(
+        error is StateError ? error.message : 'Could not post the reply.',
+        tone: PremiumFeedbackTone.error,
+      );
+      return;
+    }
+
     if (!mounted) return;
-    _feedback('Reply added.', tone: PremiumFeedbackTone.success);
+    // Open the thread so the new reply is visible straight away.
+    setState(() => _openReplies.add(post.id));
+    _feedback('Reply posted.', tone: PremiumFeedbackTone.success);
   }
 
   String? _localCoachHint(String content, String type) {
@@ -217,6 +196,99 @@ class _SocialScreenState extends State<SocialScreen> {
       return 'Good start. Add one detail to make the sentence easier to discuss.';
     }
     return null;
+  }
+
+  /// The live feed. Every signed-in account listens to the same query, so a
+  /// post written on one device lands on the others without a refresh.
+  Widget _buildFeed(SpeakeryThemeTokens tokens) {
+    return StreamBuilder<List<CommunityPost>>(
+      stream: _feed.watchFeed(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _FeedNotice(
+            tokens: tokens,
+            icon: Icons.cloud_off_rounded,
+            title: 'Feed unavailable',
+            message: _feed.isSignedIn
+                ? 'Could not reach the community feed right now.'
+                : 'Sign in to see what the community is posting.',
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return _FeedNotice(
+            tokens: tokens,
+            icon: Icons.hourglass_top_rounded,
+            title: 'Loading feed',
+            message: 'Fetching the latest posts.',
+          );
+        }
+
+        final posts = _applyFilter(snapshot.data!);
+        if (posts.isEmpty) {
+          return _FeedNotice(
+            tokens: tokens,
+            icon: Icons.forum_outlined,
+            title: 'No posts yet',
+            message: 'Be the first to share something with the community.',
+          );
+        }
+
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 240),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeOutCubic,
+          child: Column(
+            key: ValueKey('$_filter-${posts.length}'),
+            children: [
+              for (final post in posts)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _PostCard(
+                    tokens: tokens,
+                    post: post,
+                    liked: post.likedByMe(_feed.currentUid),
+                    saved: _saved.contains(post.id),
+                    replyCount: post.comments,
+                    repliesOpen: _openReplies.contains(post.id),
+                    replies: _openReplies.contains(post.id)
+                        ? _RepliesPanel(
+                            tokens: tokens,
+                            postId: post.id,
+                            onWriteReply: () => _showReplyComposer(post),
+                          )
+                        : null,
+                    onLike: () => _toggleLike(post),
+                    onReply: () => setState(() {
+                      if (!_openReplies.add(post.id)) {
+                        _openReplies.remove(post.id);
+                      }
+                    }),
+                    onSave: () {
+                      var savedNow = false;
+                      setState(() {
+                        if (!_saved.add(post.id)) {
+                          _saved.remove(post.id);
+                        } else {
+                          savedNow = true;
+                        }
+                      });
+                      _saveSocialState();
+                      if (savedNow) {
+                        PremiumFeedback.show(
+                          context,
+                          message: 'Post saved on this device.',
+                          tone: PremiumFeedbackTone.success,
+                        );
+                      }
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _openSpeakingChallenge() {
@@ -240,7 +312,8 @@ class _SocialScreenState extends State<SocialScreen> {
         child: SafeArea(
           child: ListView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 124),
+            padding: const EdgeInsets.fromLTRB(
+                16, kThemeToggleReserve, 16, 124),
             children: [
               _Header(tokens: tokens),
               const SizedBox(height: 14),
@@ -262,51 +335,7 @@ class _SocialScreenState extends State<SocialScreen> {
                 onSelected: (value) => setState(() => _filter = value),
               ),
               const SizedBox(height: 14),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 240),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeOutCubic,
-                child: Column(
-                  key: ValueKey(_filter),
-                  children: [
-                    for (final post in _visiblePosts)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _PostCard(
-                          tokens: tokens,
-                          post: post,
-                          liked: _liked.contains(post.id),
-                          saved: _saved.contains(post.id),
-                          onLike: () {
-                            setState(() {
-                              if (!_liked.add(post.id)) _liked.remove(post.id);
-                            });
-                            _saveSocialState();
-                          },
-                          onReply: () => _showReplyComposer(post),
-                          onSave: () {
-                            var savedNow = false;
-                            setState(() {
-                              if (!_saved.add(post.id)) {
-                                _saved.remove(post.id);
-                              } else {
-                                savedNow = true;
-                              }
-                            });
-                            _saveSocialState();
-                            if (savedNow) {
-                              PremiumFeedback.show(
-                                context,
-                                message: 'Post saved locally.',
-                                tone: PremiumFeedbackTone.success,
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+              _buildFeed(tokens),
               _ChallengeCard(tokens: tokens, onTap: _openSpeakingChallenge),
             ],
           ),
@@ -481,9 +510,15 @@ class _FilterRow extends StatelessWidget {
 
 class _PostCard extends StatelessWidget {
   final SpeakeryThemeTokens tokens;
-  final _SocialPost post;
+  final CommunityPost post;
   final bool liked;
   final bool saved;
+  final int replyCount;
+  final bool repliesOpen;
+
+  /// The live thread, built only while it is open so a closed post costs no
+  /// Firestore listener.
+  final Widget? replies;
   final VoidCallback onLike;
   final VoidCallback onReply;
   final VoidCallback onSave;
@@ -493,6 +528,9 @@ class _PostCard extends StatelessWidget {
     required this.post,
     required this.liked,
     required this.saved,
+    required this.replyCount,
+    required this.repliesOpen,
+    required this.replies,
     required this.onLike,
     required this.onReply,
     required this.onSave,
@@ -533,7 +571,7 @@ class _PostCard extends StatelessWidget {
                         const SizedBox(width: 7),
                         Flexible(
                           child: Text(
-                            '${post.type} - ${post.time}',
+                            '${post.type} - ${post.age}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -552,7 +590,7 @@ class _PostCard extends StatelessWidget {
           ),
           const SizedBox(height: 13),
           Text(
-            post.content,
+            post.text,
             style: TextStyle(
               color: tokens.textPrimary,
               fontSize: 14,
@@ -603,7 +641,9 @@ class _PostCard extends StatelessWidget {
                 icon: liked
                     ? Icons.favorite_rounded
                     : Icons.favorite_border_rounded,
-                label: liked ? 'Liked' : 'Like',
+                label: post.likes == 0
+                    ? (liked ? 'Liked' : 'Like')
+                    : '${post.likes}',
                 active: liked,
                 color: _pink,
                 onTap: onLike,
@@ -611,8 +651,11 @@ class _PostCard extends StatelessWidget {
               const SizedBox(width: 8),
               _ActionButton(
                 tokens: tokens,
-                icon: Icons.chat_bubble_outline_rounded,
-                label: post.replyLabel,
+                icon: repliesOpen
+                    ? Icons.chat_bubble_rounded
+                    : Icons.chat_bubble_outline_rounded,
+                label: replyCount == 0 ? 'Replies' : 'Replies $replyCount',
+                active: repliesOpen,
                 color: _purple,
                 onTap: onReply,
               ),
@@ -628,6 +671,11 @@ class _PostCard extends StatelessWidget {
                 onTap: onSave,
               ),
             ],
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            child: replies ?? const SizedBox(width: double.infinity),
           ),
         ],
       ),
@@ -1082,8 +1130,228 @@ class _ComposerSheetState extends State<_ComposerSheet> {
   }
 }
 
+/// The live reply thread under one post.
+class _RepliesPanel extends StatelessWidget {
+  final SpeakeryThemeTokens tokens;
+  final String postId;
+  final VoidCallback onWriteReply;
+
+  const _RepliesPanel({
+    required this.tokens,
+    required this.postId,
+    required this.onWriteReply,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(height: 1, color: tokens.border),
+          const SizedBox(height: 10),
+          StreamBuilder<List<CommunityComment>>(
+            stream: CommunityFeedStore.instance.watchComments(postId),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return _ReplyNote(
+                  tokens: tokens,
+                  text: 'Could not load the replies.',
+                );
+              }
+              if (!snapshot.hasData) {
+                return _ReplyNote(tokens: tokens, text: 'Loading replies...');
+              }
+
+              final replies = snapshot.data!;
+              if (replies.isEmpty) {
+                return _ReplyNote(
+                  tokens: tokens,
+                  text: 'No replies yet. Be the first to answer.',
+                );
+              }
+
+              return Column(
+                children: [
+                  for (final reply in replies)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 9),
+                      child: _ReplyRow(tokens: tokens, reply: reply),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 2),
+          _MiniButton(
+            tokens: tokens,
+            label: 'Write a reply',
+            onTap: onWriteReply,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReplyRow extends StatelessWidget {
+  final SpeakeryThemeTokens tokens;
+  final CommunityComment reply;
+
+  const _ReplyRow({required this.tokens, required this.reply});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: tokens.brandGradient,
+            ),
+            child: Text(
+              reply.initial,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        reply.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      reply.level,
+                      style: TextStyle(
+                        color: tokens.readableAccent(_blue),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  reply.text,
+                  style: TextStyle(
+                    color: tokens.textSecondary,
+                    fontSize: 12.5,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReplyNote extends StatelessWidget {
+  final SpeakeryThemeTokens tokens;
+  final String text;
+
+  const _ReplyNote({required this.tokens, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: tokens.textMuted,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+/// Stands in for the post list while the feed is loading, empty, or refusing
+/// to load — a blank column would read as "there is nothing here".
+class _FeedNotice extends StatelessWidget {
+  final SpeakeryThemeTokens tokens;
+  final IconData icon;
+  final String title;
+  final String message;
+
+  const _FeedNotice({
+    required this.tokens,
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassCard(
+      tokens: tokens,
+      child: Column(
+        children: [
+          Icon(icon, size: 28, color: tokens.readableAccent(_blue)),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: tokens.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: tokens.textSecondary,
+              fontSize: 12.5,
+              height: 1.38,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ReplySheet extends StatefulWidget {
-  final _SocialPost post;
+  final CommunityPost post;
 
   const _ReplySheet({required this.post});
 
@@ -1126,7 +1394,7 @@ class _ReplySheetState extends State<_ReplySheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            widget.post.content,
+            widget.post.text,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -1263,84 +1531,3 @@ class _SheetButton extends StatelessWidget {
   }
 }
 
-class _SocialPost {
-  final String id;
-  final String name;
-  final String level;
-  final String time;
-  final String type;
-  final String content;
-  final String? help;
-  final int replies;
-  final bool local;
-  final List<String> localReplies;
-
-  const _SocialPost({
-    required this.id,
-    required this.name,
-    required this.level,
-    required this.time,
-    required this.type,
-    required this.content,
-    this.help,
-    required this.replies,
-    this.local = false,
-    this.localReplies = const <String>[],
-  });
-
-  String get initial => name.isEmpty ? 'S' : name.substring(0, 1).toUpperCase();
-  int get totalReplies => replies + localReplies.length;
-  String get replyLabel => totalReplies == 0 ? 'Reply' : 'Reply $totalReplies';
-
-  _SocialPost withReply(String reply) {
-    return _SocialPost(
-      id: id,
-      name: name,
-      level: level,
-      time: time,
-      type: type,
-      content: content,
-      help: help,
-      replies: replies,
-      local: true,
-      localReplies: [...localReplies, reply],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'level': level,
-      'time': time,
-      'type': type,
-      'content': content,
-      'help': help,
-      'replies': replies,
-      'local': local,
-      'localReplies': localReplies,
-    };
-  }
-
-  static _SocialPost? fromJsonString(String value) {
-    try {
-      final data = jsonDecode(value) as Map<String, dynamic>;
-      return _SocialPost(
-        id: data['id'] as String? ?? '',
-        name: data['name'] as String? ?? 'You',
-        level: data['level'] as String? ?? 'A1',
-        time: data['time'] as String? ?? 'now',
-        type: data['type'] as String? ?? 'Progress',
-        content: data['content'] as String? ?? '',
-        help: data['help'] as String?,
-        replies: data['replies'] as int? ?? 0,
-        local: data['local'] as bool? ?? true,
-        localReplies: (data['localReplies'] as List<dynamic>? ?? const [])
-            .map((item) => item.toString())
-            .toList(growable: false),
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-}

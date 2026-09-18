@@ -297,6 +297,7 @@ class _TopHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = lessonCount == 0 ? 0.0 : completed / lessonCount;
+    final tokens = SpeakeryThemeTokens.of(context);
 
     return _GlassCard(
       radius: 28,
@@ -313,12 +314,12 @@ class _TopHeader extends StatelessWidget {
               height: 42,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                color: Colors.white.withAlpha(10),
-                border: Border.all(color: Colors.white.withAlpha(18)),
+                color: tokens.inputSurface,
+                border: Border.all(color: tokens.border),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back_rounded,
-                color: Colors.white,
+                color: tokens.textPrimary,
                 size: 19,
               ),
             ),
@@ -333,10 +334,10 @@ class _TopHeader extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'Reading',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: tokens.textPrimary,
                         fontSize: 21,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.4,
@@ -354,7 +355,7 @@ class _TopHeader extends StatelessWidget {
                     'Oku, kelime topla ve anladığını kontrol et.',
                   ),
                   style: TextStyle(
-                    color: Colors.white.withAlpha(165),
+                    color: tokens.textSecondary,
                     fontSize: 12.2,
                     height: 1.38,
                     fontWeight: FontWeight.w600,
@@ -396,7 +397,7 @@ class _TopHeader extends StatelessWidget {
                       Container(
                         height: 5,
                         width: double.infinity,
-                        color: Colors.white.withAlpha(10),
+                        color: tokens.border,
                       ),
                       // Fill
                       AnimatedFractionallySizedBox(
@@ -493,13 +494,14 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Row(
       children: [
         Expanded(
           child: Text(
             isEnglish ? 'Texts' : 'Metinler',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: tokens.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.3,
@@ -517,8 +519,8 @@ class _SectionHeader extends StatelessWidget {
           ),
           child: Text(
             '$count',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: tokens.textPrimary,
               fontSize: 11,
               fontWeight: FontWeight.w900,
             ),
@@ -580,6 +582,7 @@ class _ReadingClusterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return _GlassCard(
       radius: 28,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -599,8 +602,8 @@ class _ReadingClusterCard extends StatelessWidget {
                   children: [
                     Text(
                       cluster.title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: tokens.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.25,
@@ -610,7 +613,7 @@ class _ReadingClusterCard extends StatelessWidget {
                     Text(
                       cluster.subtitle,
                       style: TextStyle(
-                        color: Colors.white.withAlpha(155),
+                        color: tokens.textSecondary,
                         fontSize: 12,
                         height: 1.3,
                         fontWeight: FontWeight.w600,
@@ -636,8 +639,8 @@ class _ReadingClusterCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       '${cluster.lessons.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: tokens.textPrimary,
                         fontSize: 10.5,
                         fontWeight: FontWeight.w900,
                       ),
@@ -697,6 +700,7 @@ class _ReadingLessonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final locked = lesson.isPremium;
 
     return _TapScale(
@@ -707,10 +711,10 @@ class _ReadingLessonCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           // Solid semi-transparent — no blur here
           color:
-              locked ? Colors.white.withAlpha(6) : palette.start.withAlpha(14),
+              locked ? tokens.inputSurface : palette.start.withAlpha(14),
           border: Border.all(
             color: locked
-                ? Colors.white.withAlpha(13)
+                ? tokens.border
                 : palette.start.withAlpha(48),
             width: 1,
           ),
@@ -747,7 +751,7 @@ class _ReadingLessonCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.white.withAlpha(locked ? 170 : 245),
+                            color: locked ? tokens.textSecondary : tokens.textPrimary,
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.2,
@@ -769,7 +773,7 @@ class _ReadingLessonCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white.withAlpha(155),
+                      color: tokens.textSecondary,
                       fontSize: 12,
                       height: 1.32,
                       fontWeight: FontWeight.w600,
@@ -868,6 +872,7 @@ class _LessonProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),
       child: Stack(
@@ -875,7 +880,7 @@ class _LessonProgressBar extends StatelessWidget {
           Container(
             height: 4,
             width: double.infinity,
-            color: Colors.white.withAlpha(9),
+            color: tokens.border,
           ),
           AnimatedFractionallySizedBox(
             duration: const Duration(milliseconds: 500),
@@ -886,7 +891,10 @@ class _LessonProgressBar extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: locked
-                      ? [Colors.white.withAlpha(30), Colors.white.withAlpha(20)]
+                      ? [
+                          tokens.textMuted.withAlpha(60),
+                          tokens.textMuted.withAlpha(40),
+                        ]
                       : [palette.start, palette.end],
                 ),
                 borderRadius: BorderRadius.circular(999),
@@ -924,6 +932,7 @@ class _BookBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final locked = lesson.isPremium;
     return Container(
       width: 48,
@@ -938,9 +947,9 @@ class _BookBadge extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [palette.start, palette.end],
               ),
-        color: locked ? Colors.white.withAlpha(8) : null,
+        color: locked ? tokens.inputSurface : null,
         border: Border.all(
-          color: locked ? Colors.white.withAlpha(14) : Colors.transparent,
+          color: locked ? tokens.border : Colors.transparent,
         ),
         boxShadow: locked
             ? null
@@ -954,7 +963,7 @@ class _BookBadge extends StatelessWidget {
       ),
       child: locked
           ? Icon(Icons.lock_rounded,
-              color: Colors.white.withAlpha(150), size: 20)
+              color: tokens.textMuted, size: 20)
           : Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -990,6 +999,7 @@ class _EmptyLevelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final palette = _paletteForLevel(level);
     return _GlassCard(
       radius: 28,
@@ -1010,8 +1020,8 @@ class _EmptyLevelCard extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             t('${level.code} Reading', '${level.code} Okuma'),
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: tokens.textPrimary,
               fontSize: 19,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.3,
@@ -1025,7 +1035,7 @@ class _EmptyLevelCard extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withAlpha(155),
+              color: tokens.textSecondary,
               fontSize: 13,
               height: 1.4,
               fontWeight: FontWeight.w600,
@@ -1046,8 +1056,8 @@ class _EmptyLevelCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   t('Use level picker', 'Seviye seciciyi kullan'),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1082,6 +1092,7 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     if (completed) {
       return FutureBuilder<ReadingProgress?>(
         future: ReadingProgressStore.instance.progressFor(lessonId),
@@ -1096,22 +1107,22 @@ class _StatusBadge extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              color: const Color(0xFF22C55E).withAlpha(24),
-              border: Border.all(color: const Color(0xFF22C55E).withAlpha(55)),
+              color: tokens.success.withAlpha(24),
+              border: Border.all(color: tokens.success.withAlpha(55)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
+                Icon(
                   Icons.check_rounded,
                   size: 10,
-                  color: Color(0xFF22C55E),
+                  color: tokens.success,
                 ),
                 const SizedBox(width: 3),
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: Color(0xFF22C55E),
+                  style: TextStyle(
+                    color: tokens.success,
                     fontSize: 9.8,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1128,8 +1139,8 @@ class _StatusBadge extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
-          color: Colors.white.withAlpha(7),
-          border: Border.all(color: Colors.white.withAlpha(14)),
+          color: tokens.inputSurface,
+          border: Border.all(color: tokens.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1137,13 +1148,13 @@ class _StatusBadge extends StatelessWidget {
             Icon(
               Icons.lock_outline_rounded,
               size: 10,
-              color: Colors.white.withAlpha(130),
+              color: tokens.textMuted,
             ),
             const SizedBox(width: 3),
             Text(
               'PRO',
               style: TextStyle(
-                color: Colors.white.withAlpha(140),
+                color: tokens.textSecondary,
                 fontSize: 9.8,
                 fontWeight: FontWeight.w900,
               ),
@@ -1176,17 +1187,18 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     final c = accentColor;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
         color:
-            c != null ? c.withAlpha(16) : Colors.white.withAlpha(faint ? 5 : 8),
+            c != null ? c.withAlpha(16) : tokens.inputSurface,
         border: Border.all(
           color: c != null
               ? c.withAlpha(40)
-              : Colors.white.withAlpha(faint ? 10 : 14),
+              : tokens.border,
         ),
       ),
       child: Row(
@@ -1195,15 +1207,15 @@ class _Chip extends StatelessWidget {
           Icon(
             icon,
             size: 11.5,
-            color: c ?? Colors.white.withAlpha(faint ? 80 : 130),
+            color: c ?? (faint ? tokens.textMuted : tokens.textSecondary),
           ),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
               color: c != null
-                  ? Colors.white
-                  : Colors.white.withAlpha(faint ? 90 : 140),
+                  ? tokens.textPrimary
+                  : (faint ? tokens.textMuted : tokens.textSecondary),
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
               height: 1,
@@ -1227,22 +1239,23 @@ class _MiniStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = SpeakeryThemeTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        color: Colors.white.withAlpha(8),
-        border: Border.all(color: Colors.white.withAlpha(13)),
+        color: tokens.inputSurface,
+        border: Border.all(color: tokens.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12.5, color: Colors.white.withAlpha(140)),
+          Icon(icon, size: 12.5, color: tokens.textSecondary),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withAlpha(150),
+              color: tokens.textSecondary,
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
             ),
@@ -1304,32 +1317,10 @@ class _GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = SpeakeryThemeTokens.of(context);
-    return Container(
+    return IosLiquidGlassSurface(
+      radius: radius,
       padding: padding,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        // Solid glass — matches liquid glass aesthetic without blur overhead
-        color: tokens.isLight
-            ? tokens.elevatedSurface
-            : Colors.white.withAlpha(10),
-        border: Border.all(
-          color: tokens.isLight ? tokens.border : accentColor.withAlpha(38),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: tokens.shadow.withAlpha(tokens.isLight ? 30 : 40),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: accentColor.withAlpha(12),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+      accent: accentColor,
       child: child,
     );
   }

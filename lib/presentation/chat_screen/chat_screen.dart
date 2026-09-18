@@ -11,6 +11,7 @@ import '../../theme/speakery_theme_tokens.dart';
 import '../../theme/speakery_theme_adapter.dart';
 import '../../services/ai_service.dart';
 import '../../widgets/ios_liquid_glass.dart';
+import '../../widgets/theme_toggle_button.dart';
 
 const Color _bg = Color(0xFF050712);
 const Color _blue = Color(0xFF00C2FF);
@@ -138,7 +139,7 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Column(
             children: [
               const Padding(
-                padding: EdgeInsets.fromLTRB(16, 14, 16, 10),
+                padding: EdgeInsets.fromLTRB(16, kThemeToggleReserve, 16, 10),
                 child: _MessagesHeader(),
               ),
               Padding(
@@ -1637,14 +1638,15 @@ class _MessageBubble extends StatelessWidget {
       bottomRight: Radius.circular(isMe ? 10 : 25),
     );
 
+    // No BackdropFilter here on purpose: this widget is built once per message,
+    // and each blur would force its own backdrop snapshot every frame. The
+    // bubble already sits on a smooth gradient, where a translucent fill is
+    // visually indistinguishable from a blurred one.
     final bubble = _TapScale(
       onLongPress: onReply,
       child: ClipRRect(
         borderRadius: bubbleRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-              sigmaX: isVoxa ? 18 : 10, sigmaY: isVoxa ? 18 : 10),
-          child: AnimatedContainer(
+        child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
             constraints: BoxConstraints(maxWidth: maxWidth),
@@ -1753,8 +1755,7 @@ class _MessageBubble extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
+      );
 
     final avatar = useImageAvatar
         ? const _VoxaAvatar(size: 34)

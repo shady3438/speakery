@@ -88,6 +88,43 @@ class SpeakeryThemeTokens {
     return isLight ? Colors.white.withAlpha(142) : accent.withAlpha(18);
   }
 
+  /// WCAG contrast ratio between two opaque colours.
+  static double _contrast(Color a, Color b) {
+    final la = a.computeLuminance();
+    final lb = b.computeLuminance();
+    final hi = la > lb ? la : lb;
+    final lo = la > lb ? lb : la;
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  /// An accent that is safe to paint small text or icons with.
+  ///
+  /// The bright brand accents were picked against the dark palette, where they
+  /// carry easily. On the light palette they sit on a near-white chip and a few
+  /// of them collapse: the CEFR ambers (B1 #F59E0B, C2 #FF8A00) land around
+  /// 2:1, which is why those levels read as a smudge. Walking the lightness
+  /// down keeps the hue — the level stays recognisable — while lifting the
+  /// contrast to something legible. Dark mode is returned untouched.
+  Color readableAccent(Color accent) {
+    if (!isLight) return accent;
+    var hsl = HSLColor.fromColor(accent);
+    var out = accent;
+    for (var i = 0; i < 24 && _contrast(out, Colors.white) < 4.5; i++) {
+      hsl = hsl.withLightness((hsl.lightness - 0.03).clamp(0.0, 1.0));
+      out = hsl.toColor();
+    }
+    return out;
+  }
+
+  /// Ink for a label sitting *on* a filled accent — a gradient pill or badge.
+  /// White works over the deep blues and violets but not over a bright amber,
+  /// so a very dark tint of the fill's own hue is used when white would fail.
+  Color inkOnAccent(Color fill) {
+    if (_contrast(Colors.white, fill) >= 3.0) return Colors.white;
+    final hsl = HSLColor.fromColor(fill);
+    return hsl.withLightness((hsl.lightness * 0.3).clamp(0.0, 0.16)).toColor();
+  }
+
   Color adaptAccent(Color requested, {int slot = 0}) {
     if (!isVoxaTheme) return requested;
 
@@ -118,8 +155,8 @@ class SpeakeryThemeTokens {
     if (isLight && !isVoxa) {
       return const SpeakeryThemeTokens(
         isLight: true,
-        background: Color(0xFFF6F8FF),
-        backgroundEnd: Color(0xFFECEFFD),
+        background: Color(0xFFF3F6FF),
+        backgroundEnd: Color(0xFFE2E8FB),
         glass: Color(0x9EFFFFFF),
         glassStrong: Color(0xC4FFFFFF),
         elevated: Color(0xD9FFFFFF),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:speakery/data/grammar/grammar_b2_quiz_bank.dart';
 import 'package:speakery/data/grammar/grammar_models.dart';
 
 // PHASE218_B2_AUDIT_LOCK
@@ -1571,6 +1572,9 @@ List<String> _b2ExampleVariants(String sentence) {
 }
 
 List<GrammarQuizQuestion> _b2QuizPack(_B2LessonSpec spec) {
+  // The generated blank, then nine hand-written questions from the
+  // bank. The pack used to hold the same generated blank twice, so a
+  // drill ran out after one real question.
   return [
     GrammarQuizQuestion(
       id: '${spec.id}_fill_blank',
@@ -1586,20 +1590,7 @@ List<GrammarQuizQuestion> _b2QuizPack(_B2LessonSpec spec) {
       answer: spec.blankAnswer,
       explanation: _b2ReasonFor(spec),
     ),
-    GrammarQuizQuestion(
-      id: '${spec.id}_fill_focus',
-      type: GrammarQuizType.fillBlank,
-      prompt: 'Choose the missing grammar part.',
-      sentence: spec.blankSentence,
-      options: _cleanOptions([
-        spec.blankAnswer,
-        _wrongBlank(spec.blankAnswer),
-        _thirdBlankOption(spec.blankAnswer),
-        _fourthBlankOption(spec.blankAnswer)
-      ]),
-      answer: spec.blankAnswer,
-      explanation: _b2ReasonFor(spec),
-    ),
+    ...b2BankQuestions(spec.id),
   ];
 }
 

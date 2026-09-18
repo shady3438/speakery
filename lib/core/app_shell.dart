@@ -8,7 +8,9 @@ import '../presentation/chat_screen/chat_screen.dart';
 import '../presentation/profile_screen/profile_screen.dart';
 import '../theme/speakery_theme_adapter.dart';
 import '../theme/speakery_theme_tokens.dart';
+import '../widgets/app_drawer.dart';
 import '../widgets/app_navigation.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -18,6 +20,7 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentIndex = 0;
   bool _isNavCompact = false;
 
@@ -69,8 +72,17 @@ class _AppShellState extends State<AppShell> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: overlayStyle,
       child: Scaffold(
+        key: _scaffoldKey,
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         extendBody: true,
+        drawerEnableOpenDragGesture: true,
+        drawerScrimColor: tokens.isLight
+            ? const Color(0xFF0B1020).withAlpha(56)
+            : const Color(0xFF000000).withAlpha(120),
+        drawer: AppDrawer(
+          currentIndex: _currentIndex,
+          onSelectTab: _navigateFromHome,
+        ),
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -101,6 +113,30 @@ class _AppShellState extends State<AppShell> {
                 currentIndex: _currentIndex,
                 onTabChanged: _navigateFromHome,
                 compact: _isNavCompact,
+              ),
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8, left: 16),
+                  child: AppMenuButton(
+                    onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                  ),
+                ),
+              ),
+            ),
+            const Positioned(
+              top: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: EdgeInsets.only(top: 8, right: 16),
+                  child: ThemeToggleButton(),
+                ),
               ),
             ),
           ],

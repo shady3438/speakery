@@ -9,7 +9,9 @@
     "lint": "node --check index.js",
     "set-admin": "node scripts/set-admin.js",
     "seed-admin": "node scripts/seed-admin-data.js",
-    "deploy": "firebase deploy --only functions,firestore,hosting"
+    "deploy": "firebase deploy --only functions,firestore,hosting",
+    "backfill-usernames": "node scripts/backfill-usernames.js",
+    "migrate-friends": "node scripts/migrate-friends-to-uid.js"
   },
   "dependencies": {
     "firebase-admin": "^13.5.0",

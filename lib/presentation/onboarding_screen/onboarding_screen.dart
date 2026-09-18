@@ -46,6 +46,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
+  /// Steps forward one page, or finishes on the last one.
   void _next() {
     if (_index < 2) {
       _controller.nextPage(
@@ -54,9 +55,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
       return;
     }
+    _finish();
+  }
 
+  /// Leaves onboarding for good, keeping whatever goal and level are selected.
+  /// Skip lands here from any page, so the untouched pages simply keep the
+  /// defaults the screen opened with.
+  void _finish() {
     AppProgress.instance.setOnboardingChoices(goal: _goal, level: _level);
-    widget.onFinish?.call();
+
+    // When a host supplies onFinish it owns what happens next — the app route
+    // push-replaces this screen with the login screen. Popping afterwards tore
+    // that login route straight back down and left the user stranded on the
+    // splash route, whose one-shot timer had long since fired. Only pop when
+    // nobody is steering, i.e. onboarding was pushed on top of something.
+    if (widget.onFinish != null) {
+      widget.onFinish!.call();
+      return;
+    }
     if (Navigator.canPop(context)) Navigator.pop(context);
   }
 
@@ -90,8 +106,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       children: [
                         _ProgressDots(index: _index, tokens: tokens),
                         const Spacer(),
+                        // Skip means skip — straight out of onboarding, not
+                        // one page along, which is what `_next` did here.
                         TextButton(
-                          onPressed: _next,
+                          onPressed: _finish,
                           child: Text(
                             _index == 2 ? 'Start' : 'Skip',
                             style: TextStyle(
